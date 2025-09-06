@@ -11,7 +11,6 @@ export default function Header() {
     <nav className="bg-white border-b border-gray-200">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-12 items-center justify-between">
-          {/* Logo + Text */}
           <div className="flex items-center space-x-2">
             <img
               className="h-7 w-auto"
@@ -23,7 +22,6 @@ export default function Header() {
             </span>
           </div>
 
-          {/* Navigation Links */}
           <div className="flex space-x-6">
             {navigation.map((item) => (
               <NavLink
