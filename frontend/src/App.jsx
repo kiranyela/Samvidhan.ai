@@ -5,7 +5,8 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Features from "./components/Features";
-
+import UserTimeline from "./components/UserTimeline";
+import NgoTimeline from "./components/Ngotimeline";
 
 export default function App() {
   const [authStatus] = useState(false); // you can change to true for testing
@@ -20,6 +21,8 @@ export default function App() {
         
       </Routes>
       <Features/>
+      <UserTimeline/>
+      <NgoTimeline/>
       
     </Router>
   );
