@@ -5,20 +5,67 @@ import {User} from "../models/user.model.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 
 
-const generateAccessAndRefreshTokens= async(userId)=>{
+// const generateAccessAndRefreshTokens= async(userId)=>{
+//     try {
+//         const user = await User.findById(userId);
+//         const accessToken = user.generateAccessToken();
+//         const refreshToken = user.generateRefreshToken();
+
+//         user.refreshToken = refreshToken;
+//         await user.save({validateBeforeSave:false});
+
+//         return {accessToken,refreshToken};
+//     } catch (error) {
+//         throw new ApiError(500,'ERROR IN GENERATING ACCESS AND REFRESH TOKENS');
+//     }
+// }
+
+// const generateAccessAndRefreshTokens = async (userId) => {
+//     try {
+//         const user = await User.findById(userId); 
+//         if (!user) {
+//             throw new ApiError(404, "User not found");
+//         }
+
+//         const accessToken = user.generateAccessToken();
+//         const refreshToken = user.generateRefreshToken(); 
+
+//         user.refreshToken = refreshToken;
+//         await user.save({ validateBeforeSave: false });
+
+//         return { accessToken, refreshToken };
+//     } catch (error) {
+//         throw new ApiError(500, "ERROR IN GENERATING ACCESS AND REFRESH TOKENS");
+//     }
+// };
+
+const generateAccessAndRefreshTokens = async (userId) => {
     try {
-        const user = await User.findOne(userId);
+        const user = await User.findById(userId);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+
+        console.log("DEBUG: user found for token generation:", user._id);
+
         const accessToken = user.generateAccessToken();
+        console.log("DEBUG: accessToken generated:", accessToken);
+
         const refreshToken = user.generateRefreshToken();
+        console.log("DEBUG: refreshToken generated:", refreshToken);
 
         user.refreshToken = refreshToken;
-        await user.save({validateBeforeSave:false});
+        await user.save({ validateBeforeSave: false });
 
-        return {accessToken,refreshToken};
+        return { accessToken, refreshToken };
     } catch (error) {
-        throw new ApiError(500,'ERROR IN GENERATING ACCESS AND REFRESH TOKENS');
+        console.error("DEBUG TOKEN ERROR:", error); // log the actual error
+        throw new ApiError(500, "ERROR IN GENERATING ACCESS AND REFRESH TOKENS");
     }
-}
+};
+
+
+
 
 const registerUser= asyncHandler(async (req,res)=>{
     //recieve data from the user 
@@ -46,7 +93,6 @@ const registerUser= asyncHandler(async (req,res)=>{
         {
             fullName : fullName,
             email: email,
-            username : username.toLowerCase(),
             password: password,
         }
     )
