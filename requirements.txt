@@ -2,3 +2,10 @@
 axios
 react-hook-form
 lucide-react
+dotenv
+
+#bacekend
+mongodb
+mongoose
+nodemon
+jsonwebtoken
