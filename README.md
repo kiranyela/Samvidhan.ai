@@ -121,8 +121,8 @@ This project is licensed under the **MIT License** – see the LICENSE file for 
 
 ## 🌟 Star this repository if you found it helpful!
 
-[![GitHub stars](https://img.shields.io/github/stars/<your-username>/Samvidhan.ai.svg?style=social&label=Star)](https://github.com/<your-username>/Samvidhan.ai)
-[![GitHub forks](https://img.shields.io/github/forks/<your-username>/Samvidhan.ai.svg?style=social&label=Fork)](https://github.com/<your-username>/Samvidhan.ai/fork)
+[![GitHub stars](https://img.shields.io/github/stars/kiranyela/Samvidhan.ai.svg?style=social&label=Star)](https://github.com/kiranyela/Samvidhan.ai)
+[![GitHub forks](https://img.shields.io/github/forks/kiranyela/Samvidhan.ai.svg?style=social&label=Fork)](https://github.com/kiranyela/Samvidhan.ai/fork)
 
 ---
 
