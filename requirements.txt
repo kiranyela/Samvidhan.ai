@@ -1,0 +1,4 @@
+#frontend :
+axios
+react-hook-form
+lucide-react
