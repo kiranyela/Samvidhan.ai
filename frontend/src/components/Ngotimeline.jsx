@@ -54,8 +54,8 @@ const steps = [
 ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 md:py-12 overflow-hidden">
-      <h1 className="text-2xl md:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight pl-23 pb-10">For NGOs</h1>
+    <div className="min-h-screen bg-gradient-to-br  overflow-hidden">
+      <h1 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight pl-10 pb-10">For NGOs</h1>
       <div className="container mx-auto px-4 md:px-6 max-w-4xl">
         <div className="relative">
           {steps.map((step, index) => (

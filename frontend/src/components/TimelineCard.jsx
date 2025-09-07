@@ -19,7 +19,7 @@ const TimelineCard = ({
           if (entry.isIntersecting && !isVisible) {
             setTimeout(() => {
               setIsVisible(true);
-            }, index * 300);
+            }, index * 0);
           }
         });
       },

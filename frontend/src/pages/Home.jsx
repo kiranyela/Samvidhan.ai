@@ -3,8 +3,8 @@ import { motion } from "framer-motion";
 
 export default function Home() {
   return (
-    <main>
-      <section className="text-center px-4 py-16">
+    <main className="">
+      <section className="text-center px-20 py-26 pb-60">
         <motion.h1
           className="text-2xl sm:text-3xl md:text-4xl font-bold"
           initial={{ opacity: 0, y: -40 }}

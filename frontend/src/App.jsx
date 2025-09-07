@@ -7,6 +7,7 @@ import Signup from "./pages/Signup";
 import Features from "./components/Features";
 import UserTimeline from "./components/UserTimeline";
 import NgoTimeline from "./components/Ngotimeline";
+import Footer from "./components/footer";
 
 export default function App() {
   const [authStatus] = useState(false); // you can change to true for testing
@@ -23,6 +24,7 @@ export default function App() {
       <Features/>
       <UserTimeline/>
       <NgoTimeline/>
+      <Footer/>
       
     </Router>
   );

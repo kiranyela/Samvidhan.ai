@@ -10,7 +10,7 @@ function Features() {
     
   ];
   return <>
-  <h1 className="text-3xl font-semibold p-5 text-gray-700">Features</h1>
+  <h1 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight pl-10 pb-10">Features</h1>
   <div className="min-h-[50vh] bg-white flex items-center justify-center p-4">
 
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-10 mx-auto w-full max-w-6xl">
