@@ -17,12 +17,19 @@ export default function Login() {
   const login = async (data) => {
     try {
       setError("");
-      const res = await axios.post("http://localhost:5000/api/auth/login", data);
-      localStorage.setItem("token", res.data.token);
+      const res = await axios.post(
+        "http://localhost:5000/api/v1/users/login",
+        data,
+        { withCredentials: true } // include cookies
+      );
+
+      // backend sets cookies (httpOnly) and returns { data: { user, accessToken, refreshToken }, ... }
+      // Do NOT store tokens in localStorage if you rely on httpOnly cookies.
+      // If you need the logged in user in frontend state, you can get res.data.data.user
       navigate("/home");
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Login failed. Please try again.");
+      setError(err.response?.data?.message || err.response?.data?.message || "Login failed. Please try again.");
     }
   };
 

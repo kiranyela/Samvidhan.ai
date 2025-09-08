@@ -12,20 +12,22 @@ export default function UserRegister() {
 
   const onSubmit = async (data) => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
+      const res = await fetch("http://localhost:5000/api/v1/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        credentials: "include",
       });
 
       const result = await res.json();
 
       if (res.ok) {
+        // backend returned created user under result.data
         alert("✅ Registration successful!");
-        localStorage.setItem("token", result.token);
+        // do NOT store tokens here: backend currently returns tokens only at login
         window.location.href = "/login";
       } else {
-        alert("❌ " + result.message);
+        alert("❌ " + (result?.message || "Registration failed"));
       }
     } catch (err) {
       console.error("Register Error:", err);
