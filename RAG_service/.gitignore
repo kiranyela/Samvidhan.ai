@@ -1,0 +1,42 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+.env/
+.venv/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# VSCode / PyCharm
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# FAISS / Vectorstore / embeddings cache
+vectorstore/
+*.faiss
+*.pkl
+*.bin
+*.json
+
+# HuggingFace cache (can be huge)
+huggingface/
+hf_cache/
+.cache/
+~/.cache/

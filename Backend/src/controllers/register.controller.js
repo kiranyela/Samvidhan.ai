@@ -70,16 +70,16 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 const registerUser = asyncHandler(async (req, res) => {
     //recieve data from the user 
-    const { fullName, email, username, password } = req.body;
-    console.log("email:", email, "\nfullName :", fullName, "\nusername:", username);
+    const { fullName, email, password } = req.body;
+    console.log("email:", email, "\nfullName :", fullName);
 
     //check if any of the fields are empty 
-    if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
+    if ([fullName, email, password].some((field) => field?.trim() === "")) {
         throw new ApiError(400, "All fields are required")
     }
     //check if the user is already existed
     const existedUser = await User.findOne(
-        { $or: [{ username }, { email }] }
+        { $or: [{ fullName }, { email }] }
     )
 
     if (existedUser) {
@@ -133,7 +133,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // only true in prod
+        secure: process.env.NODE_ENV === "production", 
         sameSite: isProd ? "none" : "lax"
     };
 

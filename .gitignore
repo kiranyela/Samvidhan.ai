@@ -1,0 +1,19 @@
+# RAG Service
+RAG_service/venv/
+RAG_service/vectorstore/
+RAG_service/__pycache__/
+RAG_service/*.py[cod]
+RAG_service/*.pkl
+RAG_service/*.faiss
+RAG_service/huggingface/
+RAG_service/.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+#docs
+*.pdf

@@ -1,0 +1,16 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+# LangChain + LLM + Vector DB
+langchain
+chromadb
+sentence-transformers
+transformers
+huggingface-hub
+
+# Document loading & text splitting
+pypdf
+
+# Environment variables
+python-dotenv
