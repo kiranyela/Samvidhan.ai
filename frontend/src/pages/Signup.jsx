@@ -108,6 +108,22 @@ export default function UserRegister() {
             Register
           </button>
         </form>
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "http://localhost:5000/api/v1/users/google";
+            }}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-2 font-medium shadow-sm hover:bg-gray-50 transition"
+          >
+            <img
+              src="https://www.svgrepo.com/show/355037/google.svg"
+              alt="Google Logo"
+              className="h-5 w-5"
+            />
+            Continue with Google
+          </button>
+        </div>
       </motion.div>
     </div>
   );

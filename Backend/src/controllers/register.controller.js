@@ -233,4 +233,5 @@ export {
     changeCurrentPassword,
     updateAccountDetails,
     getCurrentUser,
+    generateAccessAndRefreshTokens
 };
