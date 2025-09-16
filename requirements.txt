@@ -3,6 +3,8 @@ axios
 react-hook-form
 lucide-react
 dotenv
+passport 
+passport-google-oauth20
 
 #bacekend
 mongodb

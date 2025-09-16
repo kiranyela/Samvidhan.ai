@@ -1,18 +1,33 @@
 import { Router } from "express";
-import { loginUser, logoutUser, registerUser,refreshAccessToken } from "../controllers/register.controller.js";
+import passport from "passport";
+import {
+  loginUser,
+  logoutUser,
+  registerUser,
+  refreshAccessToken,
+} from "../controllers/register.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { googleAuthCallback } from "../controllers/google.controller.js";
 
 const router = Router();
 
-router.route("/register").post(registerUser)
+router.post("/register", registerUser);
+router.post("/login", loginUser);
 
-router.route("/login").post(loginUser);
+// Google OAuth routes
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
 
-//secured routes
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  googleAuthCallback
+);
 
-router.route("/logout").post(verifyJWT,logoutUser);
-router.route("/refresh-token").post(refreshAccessToken)
-
-
+// secured routes
+router.post("/logout", verifyJWT, logoutUser);
+router.post("/refresh-token", refreshAccessToken);
 
 export default router;
