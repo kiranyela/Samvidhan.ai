@@ -1,10 +1,12 @@
-
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
+  const navigate = useNavigate();
+
   return (
     <main className="">
-      <section className="text-center px-20 py-26 pb-60">
+      <section className="text-center px-6 sm:px-12 md:px-20 pt-24 pb-24">
         <motion.h1
           className="text-2xl sm:text-3xl md:text-4xl font-bold"
           initial={{ opacity: 0, y: -40 }}
@@ -25,17 +27,26 @@ export default function Home() {
           authority and official portal.
         </motion.p>
 
-        <div className="mt-6 max-w-2xl mx-auto">
-          <div className="flex items-stretch gap-2 py-4">
-            <input
-              type="text"
-              placeholder="Type your problem… e.g. PF not updated, garbage not cleared"
-              className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-            <button className="rounded-xl bg-emerald-600 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-emerald-700">
-              Find My Rights
-            </button>
-          </div>
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <motion.button
+            onClick={() => navigate("/signup")}
+            className="rounded-xl bg-emerald-600 text-white px-6 py-3 text-base sm:text-lg font-medium shadow-md hover:bg-emerald-700 transition-all"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            Get Started →
+          </motion.button>
+
+          <motion.button
+            onClick={() => navigate("/chat")}
+            className="rounded-xl bg-white border border-emerald-600 text-emerald-700 px-6 py-3 text-base sm:text-lg font-medium shadow-md hover:bg-emerald-50 transition-all"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            Try Now &gt;
+          </motion.button>
         </div>
       </section>
 
@@ -44,8 +55,7 @@ export default function Home() {
         whileInView={{ opacity: 1 }}
         transition={{ duration: 1.2 }}
         viewport={{ once: true }}
-      >
-      </motion.div>
+      />
     </main>
   );
 }

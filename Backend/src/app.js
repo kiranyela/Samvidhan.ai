@@ -3,6 +3,10 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import passport from "./config/passport.js";
+import userRouter from "./routes/user.routes.js";
+import chatRouter from "./routes/chat.routes.js";
+
+
 
 const app = express();
 
@@ -30,7 +34,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // routes
-import userRouter from "./routes/user.routes.js";
+
+
 app.use("/api/v1/users", userRouter);
+app.use("/api/chat", chatRouter);
 
 export { app };
