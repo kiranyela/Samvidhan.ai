@@ -2,9 +2,10 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
-import passport from "./config/passport.js";
+import { PASSPORT as passport } from "./config/passport.js";
 import userRouter from "./routes/user.routes.js";
 import chatRouter from "./routes/chat.routes.js";
+import ngoRouter from "./routes/ngo.routes.js";
 
 
 
@@ -38,5 +39,6 @@ app.use(passport.session());
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/chat", chatRouter);
+app.use("/api/v1/ngos", ngoRouter);
 
 export { app };

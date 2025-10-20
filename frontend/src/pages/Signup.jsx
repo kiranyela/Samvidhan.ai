@@ -1,12 +1,15 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function UserRegister() {
+  const navigate = useNavigate();
+  
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm();
 
@@ -25,7 +28,8 @@ export default function UserRegister() {
         // backend returned created user under result.data
         alert("✅ Registration successful!");
         // do NOT store tokens here: backend currently returns tokens only at login
-        window.location.href = "/login";
+        reset();
+        navigate("/chat");
       } else {
         alert("❌ " + (result?.message || "Registration failed"));
       }

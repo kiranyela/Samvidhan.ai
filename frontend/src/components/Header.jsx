@@ -1,10 +1,10 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 const navigationPublic = [
   { name: "Home", to: "/" },
-  { name: "Login", to: "/login" },
-  { name: "Sign Up", to: "/signup" },
+  { name: "Login", to: "/roleselection" },
+  { name: "Sign Up", to: "/roleselection" },
 ];
 
 const navigationPrivate = [
@@ -16,12 +16,13 @@ const navigationPrivate = [
 export default function Header() {
   const [user, setUser] = useState(null);
 
+  const navigate = useNavigate();
   useEffect(() => {
     // Check login status from backend (token or session)
     const fetchUser = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/auth/me", {
-          credentials: "include", // include cookies if using sessions
+        const res = await fetch("/api/v1/users/me", {
+          credentials: "include",
         });
         if (res.ok) {
           const data = await res.json();
@@ -35,11 +36,13 @@ export default function Header() {
   }, []);
 
   const handleLogout = async () => {
-    await fetch("http://localhost:5000/api/auth/logout", {
+    await fetch("/api/v1/users/logout", {
       method: "POST",
       credentials: "include",
     });
     setUser(null);
+    // Redirect to home or login page after logout
+    navigate("/home");
   };
 
   const navigation = user ? navigationPrivate : navigationPublic;

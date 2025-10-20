@@ -13,3 +13,4 @@ nodemon
 jsonwebtoken
 cookie-parser
 express-session
+multer

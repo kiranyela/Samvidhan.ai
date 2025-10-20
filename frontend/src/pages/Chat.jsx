@@ -2,6 +2,209 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Sparkles, Scale } from "lucide-react";
 
+// Component to format AI responses with headings, bullet points, and clickable links
+const FormattedMessage = ({ text }) => {
+  // Function to detect and convert URLs to clickable links and handle bold text
+  const linkifyText = (text) => {
+    // First handle bold text (**text**)
+    const boldRegex = /\*\*(.+?)\*\*/g;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
+    // Split by both patterns
+    const parts = text.split(/(\*\*.+?\*\*|https?:\/\/[^\s]+)/g);
+    
+    return parts.map((part, i) => {
+      // Check if it's a URL
+      if (part.match(urlRegex)) {
+        return (
+          <a 
+            key={i} 
+            href={part} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-emerald-600 hover:text-emerald-700 underline font-medium transition-colors break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+      
+      // Check if it's bold text
+      const boldMatch = part.match(boldRegex);
+      if (boldMatch) {
+        const boldContent = part.replace(/\*\*/g, '');
+        return (
+          <strong key={i} className="font-semibold text-emerald-900 text-[15px]">
+            {boldContent}
+          </strong>
+        );
+      }
+      
+      return part;
+    });
+  };
+
+  const formatText = (text) => {
+    const lines = text.split('\n');
+    const formatted = [];
+    let currentList = [];
+    let listType = null;
+
+    lines.forEach((line, idx) => {
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines
+      if (!trimmedLine) {
+        if (currentList.length > 0) {
+          formatted.push({ type: listType, items: [...currentList] });
+          currentList = [];
+          listType = null;
+        }
+        return;
+      }
+
+      // Check for numbered lists (1. or 1) format)
+      const numberedMatch = trimmedLine.match(/^(\d+)[.)]\s+(.+)$/);
+      if (numberedMatch) {
+        if (listType !== 'ordered') {
+          if (currentList.length > 0) {
+            formatted.push({ type: listType, items: [...currentList] });
+            currentList = [];
+          }
+          listType = 'ordered';
+        }
+        currentList.push(numberedMatch[2]);
+        return;
+      }
+
+      // Check for bullet points (-, *, •)
+      const bulletMatch = trimmedLine.match(/^[-*•]\s+(.+)$/);
+      if (bulletMatch) {
+        if (listType !== 'unordered') {
+          if (currentList.length > 0) {
+            formatted.push({ type: listType, items: [...currentList] });
+            currentList = [];
+          }
+          listType = 'unordered';
+        }
+        currentList.push(bulletMatch[1]);
+        return;
+      }
+
+      // Check for markdown bold headings (**text** at start of line)
+      const boldHeadingMatch = trimmedLine.match(/^\*\*(.+?)\*\*:?$/);
+      if (boldHeadingMatch) {
+        if (currentList.length > 0) {
+          formatted.push({ type: listType, items: [...currentList] });
+          currentList = [];
+          listType = null;
+        }
+        formatted.push({ type: 'heading', level: 2, text: boldHeadingMatch[1] });
+        return;
+      }
+
+      // Check for headings (##, ###)
+      const headingMatch = trimmedLine.match(/^(#{1,3})\s+(.+)$/);
+      if (headingMatch) {
+        if (currentList.length > 0) {
+          formatted.push({ type: listType, items: [...currentList] });
+          currentList = [];
+          listType = null;
+        }
+        const level = headingMatch[1].length;
+        formatted.push({ type: 'heading', level, text: headingMatch[2] });
+        return;
+      }
+
+      // Lines ending with : might be headings (but not too long and not containing URLs)
+      if (trimmedLine.endsWith(':') && trimmedLine.length < 80 && !trimmedLine.includes('http')) {
+        if (currentList.length > 0) {
+          formatted.push({ type: listType, items: [...currentList] });
+          currentList = [];
+          listType = null;
+        }
+        formatted.push({ type: 'heading', level: 3, text: trimmedLine.slice(0, -1) });
+        return;
+      }
+
+      // Regular paragraph text
+      if (currentList.length > 0) {
+        formatted.push({ type: listType, items: [...currentList] });
+        currentList = [];
+        listType = null;
+      }
+      formatted.push({ type: 'paragraph', text: trimmedLine });
+    });
+
+    // Push remaining list items
+    if (currentList.length > 0) {
+      formatted.push({ type: listType, items: [...currentList] });
+    }
+
+    return formatted;
+  };
+
+  const formattedContent = formatText(text);
+
+  return (
+    <div className="space-y-4">
+      {formattedContent.map((item, idx) => {
+        if (item.type === 'heading') {
+          const HeadingTag = item.level === 1 ? 'h2' : item.level === 2 ? 'h3' : 'h4';
+          const sizeClass = item.level === 1 ? 'text-xl' : item.level === 2 ? 'text-lg' : 'text-base';
+          return (
+            <HeadingTag 
+              key={idx} 
+              className={`${sizeClass} font-bold text-emerald-800 mt-6 mb-3 first:mt-0 flex items-center gap-2`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+              {item.text}
+            </HeadingTag>
+          );
+        }
+        
+        if (item.type === 'ordered') {
+          return (
+            <ol key={idx} className="space-y-2.5 ml-1">
+              {item.items.map((listItem, i) => (
+                <li key={i} className="flex gap-3 items-start">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 text-slate-700 leading-relaxed pt-0.5">
+                    {linkifyText(listItem)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          );
+        }
+        
+        if (item.type === 'unordered') {
+          return (
+            <ul key={idx} className="space-y-2.5 ml-1">
+              {item.items.map((listItem, i) => (
+                <li key={i} className="flex gap-3 items-start">
+                  <span className="flex-shrink-0 w-2 h-2 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 mt-2"></span>
+                  <span className="flex-1 text-slate-700 leading-relaxed">
+                    {linkifyText(listItem)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        
+        return (
+          <p key={idx} className="text-slate-700 leading-relaxed">
+            {linkifyText(item.text)}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -12,97 +215,54 @@ export default function Chat() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // ...existing imports...
+  const sendPromptToBackend = async (problem) => {
+    try {
+      const response = await fetch('/api/chat/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problem }),
+      });
+      const data = await response.json();
+      return data.response || data.error || "No response from AI.";
+    } catch (error) {
+      return "Error: Unable to get response from AI.";
+    }
+  };
 
-
-const sendPromptToBackend = async (problem) => {
-  try {
-    const response = await fetch('/api/chat/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ problem }),
-    });
-    const data = await response.json();
-    return data.response || data.error || "No response from AI.";
-  } catch (error) {
-    return "Error: Unable to get response from AI.";
-  }
-};
-
-    const handleSend = async () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
     const userMsg = { sender: "user", text: input.trim() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
 
-  const aiResponse = await sendPromptToBackend(input.trim());
+    const aiResponse = await sendPromptToBackend(input.trim());
     setIsTyping(false);
     setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: aiResponse }
+      ...prev,
+      { sender: "bot", text: aiResponse }
     ]);
-    };
-  
+  };
 
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = async (suggestion) => {
     setMessages([{ sender: "user", text: suggestion }]);
     setIsTyping(true);
     
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages((prev) => [
-        ...prev,
-        { 
-          sender: "bot", 
-          text: `Regarding "${suggestion}" - The Indian Constitution provides specific protections and procedures. Let me explain the relevant legal framework, constitutional articles, and your rights in this matter...` 
-        },
-      ]);
-    }, 1800);
+    const aiResponse = await sendPromptToBackend(suggestion);
+    setIsTyping(false);
+    setMessages((prev) => [
+      ...prev,
+      { sender: "bot", text: aiResponse }
+    ]);
   };
 
   return (
-    <main className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50">
-      {/* Premium Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="relative bg-white/60 backdrop-blur-xl border-b border-emerald-100/50 shadow-sm sticky top-0 z-10"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-emerald-500/5"></div>
-        <div className="relative max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <motion.div 
-              className="relative w-12 h-12 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/20"
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              transition={{ type: "spring", stiffness: 400 }}
-            >
-              <Scale className="text-white w-6 h-6" strokeWidth={2.5} />
-            </motion.div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 bg-clip-text text-transparent">
-                  Samvidhan.ai
-                </span>
-              </h1>
-              <p className="text-xs text-slate-600 font-medium mt-0.5">AI-Powered Constitutional Assistant</p>
-            </div>
-          </div>
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          >
-            <Sparkles className="text-emerald-600 w-6 h-6" />
-          </motion.div>
-        </div>
-      </motion.header>
-
+    <main className="h-[calc(100vh-3rem)] flex flex-col bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50">
       {/* Chat Container */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto relative">
         {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center px-4 py-16">
-            <div className="max-w-5xl mx-auto w-full text-center">
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="max-w-5xl w-full text-center">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -110,9 +270,9 @@ const sendPromptToBackend = async (problem) => {
               >
                 {/* Hero Icon */}
                 <motion.div 
-                  className="relative w-24 h-24 mx-auto mb-10"
+                  className="relative w-20 h-20 mx-auto mb-6"
                   animate={{ 
-                    y: [0, -10, 0],
+                    y: [0, -8, 0],
                   }}
                   transition={{ 
                     duration: 4,
@@ -120,26 +280,26 @@ const sendPromptToBackend = async (problem) => {
                     ease: "easeInOut"
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl blur-xl opacity-40"></div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl blur-lg opacity-40"></div>
                   <div className="relative w-full h-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-500/30">
-                    <Scale className="text-white w-12 h-12" strokeWidth={2.5} />
+                    <Scale className="text-white w-10 h-10" strokeWidth={2.5} />
                   </div>
                 </motion.div>
 
                 {/* Hero Text */}
-                <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-5 tracking-tight">
+                <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
                   Understanding Your
-                  <span className="block mt-2 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 bg-clip-text text-transparent">
+                  <span className="block mt-1 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 bg-clip-text text-transparent">
                     Constitutional Rights
                   </span>
                 </h2>
-                <p className="text-slate-600 text-lg mb-16 max-w-2xl mx-auto leading-relaxed">
+                <p className="text-slate-600 text-sm mb-8 max-w-xl mx-auto leading-relaxed">
                   Get expert guidance on Indian Constitutional Law, fundamental rights, 
                   and legal procedures powered by AI
                 </p>
 
                 {/* Suggestion Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto">
                   {[
                     { text: "What are my fundamental rights under the Constitution?", icon: "🏛️", gradient: "from-blue-500 to-indigo-600" },
                     { text: "How can I file a Public Interest Litigation?", icon: "📜", gradient: "from-purple-500 to-pink-600" },
@@ -151,17 +311,17 @@ const sendPromptToBackend = async (problem) => {
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.1 + 0.4, duration: 0.6 }}
-                      whileHover={{ scale: 1.03, y: -4 }}
+                      whileHover={{ scale: 1.03, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleSuggestionClick(suggestion.text)}
-                      className="group relative p-6 text-left bg-white/80 backdrop-blur-sm border-2 border-slate-200/60 rounded-3xl hover:border-emerald-400/60 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
+                      className="group relative p-3 text-left bg-white/80 backdrop-blur-sm border-2 border-slate-200/60 rounded-2xl hover:border-emerald-400/60 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
                     >
                       <div className={`absolute inset-0 bg-gradient-to-br ${suggestion.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
-                      <div className="relative flex items-start gap-4">
-                        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <span className="text-2xl">{suggestion.icon}</span>
+                      <div className="relative flex items-center gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <span className="text-lg">{suggestion.icon}</span>
                         </div>
-                        <span className="text-slate-700 font-medium leading-relaxed text-base pt-2 group-hover:text-emerald-700 transition-colors">
+                        <span className="text-slate-700 font-medium leading-relaxed text-xs pt-0 group-hover:text-emerald-700 transition-colors">
                           {suggestion.text}
                         </span>
                       </div>
@@ -214,7 +374,11 @@ const sendPromptToBackend = async (problem) => {
                         whileHover={{ scale: 1.01 }}
                       >
                         <div className="text-[15px] leading-relaxed">
-                          {msg.text}
+                          {msg.sender === "user" ? (
+                            msg.text
+                          ) : (
+                            <FormattedMessage text={msg.text} />
+                          )}
                         </div>
                       </motion.div>
                     </div>
@@ -268,14 +432,14 @@ const sendPromptToBackend = async (problem) => {
       </div>
 
       {/* Premium Input Area */}
-      <div className="relative border-t border-emerald-100/50 bg-white/60 backdrop-blur-xl p-6">
+      <div className="relative border-t border-emerald-100/50 bg-white/60 backdrop-blur-xl p-4">
         <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/5 to-transparent"></div>
         <div className="relative max-w-5xl mx-auto">
-          <div className="flex items-end gap-4 bg-white border-2 border-slate-300/60 rounded-3xl p-2 shadow-2xl hover:border-emerald-500/60 focus-within:border-emerald-600 transition-all duration-300">
+          <div className="flex items-end gap-3 bg-white border-2 border-slate-300/60 rounded-2xl p-1.5 shadow-xl hover:border-emerald-500/60 focus-within:border-emerald-600 transition-all duration-300">
             <input
               type="text"
-              placeholder="Ask about constitutional law, fundamental rights, legal procedures..."
-              className="flex-1 bg-transparent px-5 py-4 text-base focus:outline-none placeholder:text-slate-400"
+              placeholder="Ask about constitutional law..."
+              className="flex-1 bg-transparent px-4 py-2 text-sm focus:outline-none placeholder:text-slate-400"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
@@ -285,12 +449,12 @@ const sendPromptToBackend = async (problem) => {
               disabled={!input.trim()}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="relative bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 hover:from-emerald-700 hover:via-emerald-800 hover:to-emerald-900 disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed text-white rounded-2xl p-3.5 transition-all duration-300 shadow-xl shadow-emerald-500/30 disabled:shadow-none"
+              className="relative bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 hover:from-emerald-700 hover:via-emerald-800 hover:to-emerald-900 disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed text-white rounded-xl p-2.5 transition-all duration-300 shadow-lg shadow-emerald-500/30 disabled:shadow-none"
             >
-              <Send size={22} strokeWidth={2.5} />
+              <Send size={20} strokeWidth={2.5} />
             </motion.button>
           </div>
-          <p className="text-xs text-slate-500 text-center mt-4 font-medium">
+          <p className="text-xs text-slate-500 text-center mt-3 font-medium">
             Samvidhan.ai provides general legal information. Always consult a qualified lawyer for specific legal advice.
           </p>
         </div>

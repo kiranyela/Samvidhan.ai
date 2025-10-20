@@ -29,5 +29,18 @@ router.get(
 // secured routes
 router.post("/logout", verifyJWT, logoutUser);
 router.post("/refresh-token", refreshAccessToken);
+router.get("/me", verifyJWT, (req, res) => {
+  // verifyJWT middleware attaches the user object to the request
+  if (req.user) {
+    return res.status(200).json({
+      user: {
+        _id: req.user._id,
+        fullName: req.user.fullName,
+        email: req.user.email,
+      },
+    });
+  }
+  return res.status(404).json({ message: "User not found" });
+});
 
 export default router;

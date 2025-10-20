@@ -29,7 +29,7 @@ export default function Home() {
 
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <motion.button
-            onClick={() => navigate("/signup")}
+            onClick={() => navigate("/roleselection")}
             className="rounded-xl bg-emerald-600 text-white px-6 py-3 text-base sm:text-lg font-medium shadow-md hover:bg-emerald-700 transition-all"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

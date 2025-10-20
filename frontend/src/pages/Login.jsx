@@ -8,6 +8,7 @@ export default function Login() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm();
 
@@ -26,7 +27,8 @@ export default function Login() {
       // backend sets cookies (httpOnly) and returns { data: { user, accessToken, refreshToken }, ... }
       // Do NOT store tokens in localStorage if you rely on httpOnly cookies.
       // If you need the logged in user in frontend state, you can get res.data.data.user
-      navigate("/home");
+      reset();
+      navigate("/chat");
     } catch (err) {
       console.error(err);
       setError(
