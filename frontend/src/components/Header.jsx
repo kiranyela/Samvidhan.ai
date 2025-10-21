@@ -17,35 +17,68 @@ export default function Header() {
   const [user, setUser] = useState(null);
 
   const navigate = useNavigate();
+
+  // Initialize from localStorage and keep in sync
   useEffect(() => {
-    // Check login status from backend (token or session)
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("/api/v1/users/me", {
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-        }
-      } catch (err) {
-        console.error("Not logged in");
+    const applyLocalAuth = () => {
+      const isAuth = localStorage.getItem("auth") === "true";
+      if (isAuth) {
+        const role = localStorage.getItem("role") || "user";
+        const email = localStorage.getItem("email") || null;
+        setUser({ role, email });
+      } else {
+        setUser(null);
       }
     };
+
+    applyLocalAuth();
+
+    // Best-effort backend check (optional)
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/v1/users/me", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user) setUser(data.user);
+        }
+      } catch {}
+    };
     fetchUser();
+
+    // Listen for auth changes across tabs (storage) and same-tab (custom event)
+    const onStorage = (e) => {
+      if (e.key === "auth" || e.key === "role" || e.key === "email") {
+        applyLocalAuth();
+      }
+    };
+    const onAuthChanged = () => applyLocalAuth();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("auth-changed", onAuthChanged);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("auth-changed", onAuthChanged);
+    };
   }, []);
 
   const handleLogout = async () => {
-    await fetch("/api/v1/users/logout", {
-      method: "POST",
-      credentials: "include",
-    });
+    try {
+      await fetch("/api/v1/users/logout", { method: "POST", credentials: "include" });
+    } catch {}
+    localStorage.removeItem("auth");
+    localStorage.removeItem("role");
+    localStorage.removeItem("email");
     setUser(null);
-    // Redirect to home or login page after logout
-    navigate("/home");
+    navigate("/");
   };
 
-  const navigation = user ? navigationPrivate : navigationPublic;
+  // Build navigation depending on role
+  const dashboardTo = user?.role === "ngo" ? "/ngodashboard" : "/dashboard";
+  const navigation = user
+    ? [
+        { name: "Home", to: "/" },
+        { name: "Dashboard", to: dashboardTo },
+      ]
+    : navigationPublic;
 
   return (
     <nav className="bg-white border-b border-gray-200">

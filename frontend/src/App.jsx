@@ -12,6 +12,7 @@ import Footer from "./components/footer";
 import RoleSelection from "./pages/RoleSelection";
 import NGOSignup from "./pages/NGOSignup";
 import NGOLogin from "./pages/NGOLogin";
+import NGODashboard from "./pages/NGODashboard";
 
 function AppContent() {
   const [authStatus] = useState(false);
@@ -28,6 +29,7 @@ function AppContent() {
         <Route path="/roleselection" element={<RoleSelection/>}/>
         <Route path="/ngosignup" element={<NGOSignup/>}/>
         <Route path="/ngologin" element={<NGOLogin/>}/>
+        <Route path="/ngodashboard" element={<NGODashboard/>}/>
         <Route path="/chat" element={<Chat />} />
       </Routes>
       {isHomePage && (

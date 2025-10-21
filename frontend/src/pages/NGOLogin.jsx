@@ -9,7 +9,6 @@ export default function NGOLogin() {
 
   const [ngoId, setNgoId] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,8 +49,15 @@ export default function NGOLogin() {
     try {
       const res = await api.post("/v1/ngos/otp/verify", { email, otp });
 
+      // Persist basic auth state for header/UI
+      try {
+        localStorage.setItem("auth", "true");
+        localStorage.setItem("role", "ngo");
+        if (email) localStorage.setItem("email", email);
+        window.dispatchEvent(new Event("auth-changed"));
+      } catch {}
       alert("Login successful!");
-      navigate("/ngo-dashboard"); // redirect to NGO dashboard
+      navigate("/ngodashboard"); // redirect to NGO dashboard
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || "Login failed");

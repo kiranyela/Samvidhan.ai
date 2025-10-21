@@ -23,9 +23,13 @@ export default function Login() {
         data,
       );
 
-      // backend sets cookies (httpOnly) and returns { data: { user, accessToken, refreshToken }, ... }
-      // Do NOT store tokens in localStorage if you rely on httpOnly cookies.
-      // If you need the logged in user in frontend state, you can get res.data.data.user
+      // backend sets cookies (httpOnly). Persist minimal UI auth state for header/navigation
+      try {
+        localStorage.setItem("auth", "true");
+        localStorage.setItem("role", "user");
+        if (data?.email) localStorage.setItem("email", data.email);
+        window.dispatchEvent(new Event("auth-changed"));
+      } catch {}
       reset();
       navigate("/chat");
     } catch (err) {
