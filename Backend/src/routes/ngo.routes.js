@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { registerNgo, loginNgo,  requestOtp, verifyOtp } from '../controllers/ngoregister.controller.js';
+import { registerNgo, requestOtp, verifyOtp } from '../controllers/ngoregister.controller.js';
 import { upload } from '../middlewares/multer.middleware.js';
 
 const router = Router();

@@ -1,4 +1,5 @@
 import mongoose, { Schema, model } from "mongoose";
+import jwt from "jsonwebtoken";
 
 const NgoSchema = new Schema(
   {
@@ -91,5 +92,32 @@ const NgoSchema = new Schema(
   { timestamps: true }
 );
 
+// JWT methods for issuing tokens during OTP login
+NgoSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      ngoName: this.ngoName,
+      email: this.email,
+      registrationNumber: this.registrationNumber,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+    }
+  );
+};
+
+NgoSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    }
+  );
+};
 
 export const Ngo = model("Ngo", NgoSchema);

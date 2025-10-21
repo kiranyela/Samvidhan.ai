@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../lib/api";
 import { motion } from "framer-motion";
 
 export default function Login() {
@@ -18,10 +18,9 @@ export default function Login() {
   const login = async (data) => {
     try {
       setError("");
-      const res = await axios.post(
-        "http://localhost:5000/api/v1/users/login",
+      const res = await api.post(
+        "/v1/users/login",
         data,
-        { withCredentials: true } // include cookies
       );
 
       // backend sets cookies (httpOnly) and returns { data: { user, accessToken, refreshToken }, ... }

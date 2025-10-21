@@ -144,32 +144,51 @@ const requestOtp = asyncHandler(async (req, res) => {
  ngo.otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // valid for 5 mins
  await ngo.save({ validateBeforeSave: false });
 
- // Send OTP via email (using environment variables)
+ // Send OTP via email. If EMAIL_* not configured, use Ethereal fallback for development and return preview URL.
+ let previewUrl = undefined;
  try {
- const transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || "gmail",
-    auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-   },
-  });
+   let transporter;
+   if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+     transporter = nodemailer.createTransport({
+       service: process.env.EMAIL_SERVICE || "gmail",
+       auth: {
+         user: process.env.EMAIL_USER,
+         pass: process.env.EMAIL_PASS,
+       },
+     });
+   } else {
+     const testAccount = await nodemailer.createTestAccount();
+     transporter = nodemailer.createTransport({
+       host: "smtp.ethereal.email",
+       port: 587,
+       secure: false,
+       auth: {
+         user: testAccount.user,
+         pass: testAccount.pass,
+       },
+     });
+   }
 
-  await transporter.sendMail({
-   from: process.env.EMAIL_USER,
-   to: email,
-   subject: "Your OTP for NGO Login",
-   text: `Your OTP for NGO login is ${otp}. It is valid for 5 minutes.`,
-   html: `<p>Your OTP for NGO login is <strong>${otp}</strong>.</p><p>It is valid for 5 minutes.</p>`,
-  });
+   const info = await transporter.sendMail({
+     from: process.env.EMAIL_USER || 'no-reply@example.com',
+     to: email,
+     subject: "Your OTP for NGO Login",
+     text: `Your OTP for NGO login is ${otp}. It is valid for 5 minutes.`,
+     html: `<p>Your OTP for NGO login is <strong>${otp}</strong>.</p><p>It is valid for 5 minutes.</p>`,
+   });
+   // Generate Ethereal preview URL if applicable
+   previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
  } catch (error) {
-  console.error("Nodemailer failed to send email:", error);
-  // Optionally remove OTP if email fails to prevent lockout, but often kept for security.
-  // For now, we'll continue, assuming the email service is configured correctly in production.
+   console.error("Nodemailer failed to send email:", error);
+   // rollback stored OTP to avoid misleading success
+   ngo.otp = undefined;
+   ngo.otpExpiry = undefined;
+   await ngo.save({ validateBeforeSave: false });
+   throw new ApiError(500, "Failed to send OTP email. Please try again later.");
  }
-  
 
  return res.status(200).json(
-  new ApiResponse(200, {}, "OTP sent successfully")
+  new ApiResponse(200, { previewUrl }, "OTP sent successfully")
  );
 });
 

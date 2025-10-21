@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Search } from "lucide-react";
-import axios from "axios";
+import api from "../lib/api";
 import { useNavigate } from "react-router-dom";
 
 export default function NGOSignup() {
@@ -124,17 +124,19 @@ export default function NGOSignup() {
     }
 
     try {
-        const response = await axios.post("/api/v1/ngos/register", data, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        });
-        console.log("Form submitted:", response.data);
-        alert("Form submitted successfully! Check console for data.");
-        navigate('/ngologin');
+        const response = await api.post("/v1/ngos/register", data);
+        if (response.status === 201) {
+          console.log("Form submitted:", response.data);
+          alert("NGO registered successfully.");
+          navigate('/ngologin');
+        } else {
+          console.warn("Unexpected response:", response);
+          alert(`Unexpected response: ${response.status}`);
+        }
     } catch (error) {
         console.error("Error submitting form:", error);
-        alert("Error submitting form. Check console for details.");
+        const msg = error?.response?.data?.message || "Error submitting form.";
+        alert(msg);
     }
   };
 

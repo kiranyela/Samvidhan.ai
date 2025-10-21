@@ -41,4 +41,16 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/v1/ngos", ngoRouter);
 
+// centralized error handler (returns JSON instead of HTML)
+// must be after routes
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const status = err.statusCode || err.status || 500;
+  const message = err.message || "Internal Server Error";
+  return res.status(status).json({
+    success: false,
+    message,
+  });
+});
+
 export { app };

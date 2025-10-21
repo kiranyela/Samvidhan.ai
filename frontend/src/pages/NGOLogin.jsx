@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../lib/api";
 
 export default function NGOLogin() {
 
@@ -22,10 +22,16 @@ export default function NGOLogin() {
     
     setLoading(true);
     try {
-      // Example API call to request OTP
-      await axios.post("/api/v1/ngos/request", { email });
+      // Request OTP
+      const res = await api.post("/v1/ngos/otp/request", { email });
+      const previewUrl = res?.data?.data?.previewUrl;
       setOtpSent(true);
-      alert("OTP sent successfully!");
+      if (previewUrl) {
+        console.log("OTP email preview URL:", previewUrl);
+        alert("OTP sent (development preview). Open console for the preview URL.");
+      } else {
+        alert("OTP sent successfully!");
+      }
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || "Error sending OTP");
@@ -42,9 +48,7 @@ export default function NGOLogin() {
     
     setLoading(true);
     try {
-      const res = await axios.post("/api/v1/ngos/verify", { email, otp }, { withCredentials: true });
-      
-    
+      const res = await api.post("/v1/ngos/otp/verify", { email, otp });
 
       alert("Login successful!");
       navigate("/ngo-dashboard"); // redirect to NGO dashboard
