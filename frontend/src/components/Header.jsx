@@ -15,6 +15,7 @@ const navigationPrivate = [
 
 export default function Header() {
   const [user, setUser] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -99,7 +100,7 @@ export default function Header() {
           </div>
 
           {/* Navigation */}
-          <div className="flex space-x-6">
+          <div className="flex items-center space-x-6 relative">
             {navigation.map((item) => (
               <NavLink
                 key={item.name}
@@ -126,14 +127,53 @@ export default function Header() {
               </button>
             )}
 
-            {/* Show Logout only when user is logged in */}
+            {/* Avatar dropdown for logged-in user */}
             {user && (
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center px-3 py-1 text-sm font-medium text-red-600 hover:text-red-800"
-              >
-                Logout
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="w-8 h-8 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shadow hover:bg-emerald-700"
+                  title={user.email || "Account"}
+                >
+                  {(user.email || "U").split("@")[0]
+                    .split(/[\s._-]+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((s) => s[0]?.toUpperCase())
+                    .join("") || "U"}
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                    <button
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate(dashboardTo);
+                      }}
+                    >
+                      Dashboard
+                    </button>
+                    <button
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate("/chat");
+                      }}
+                    >
+                      Chat
+                    </button>
+                    <button
+                      className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleLogout();
+                      }}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

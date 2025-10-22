@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Scale } from "lucide-react";
+import { Send, Sparkles, Scale, Mic, Volume2, Pause } from "lucide-react";
 
 // Component to format AI responses with headings, bullet points, and clickable links
 const FormattedMessage = ({ text }) => {
@@ -210,10 +210,138 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef(null);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef(null);
+  const [speakingIndex, setSpeakingIndex] = useState(null);
+  const utterRef = useRef(null);
+  const autoSendRef = useRef(false);
+  const [lang, setLang] = useState("en-IN");
+
+  // Lightweight script-based detection to infer locale
+  const detectLangFromText = (text) => {
+    const t = (text || "").trim();
+    if (!t) return null;
+    const RE = {
+      devanagari: /[\u0900-\u097F]/,    // Hindi, Marathi
+      bengali: /[\u0980-\u09FF]/,       // Bengali
+      gurmukhi: /[\u0A00-\u0A7F]/,      // Punjabi
+      gujarati: /[\u0A80-\u0AFF]/,
+      oriya: /[\u0B00-\u0B7F]/,
+      tamil: /[\u0B80-\u0BFF]/,
+      telugu: /[\u0C00-\u0C7F]/,
+      kannada: /[\u0C80-\u0CFF]/,
+      malayalam: /[\u0D00-\u0D7F]/,
+    };
+    const MAP = {
+      devanagari: "hi-IN",
+      bengali: "bn-IN",
+      gurmukhi: "pa-IN",
+      gujarati: "gu-IN",
+      oriya: "or-IN",
+      tamil: "ta-IN",
+      telugu: "te-IN",
+      kannada: "kn-IN",
+      malayalam: "ml-IN",
+    };
+    for (const [script, re] of Object.entries(RE)) {
+      if (re.test(t)) return MAP[script];
+    }
+    // If only ASCII/Latin characters, keep current or fallback to English
+    return "en-IN";
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const recog = new SR();
+    recog.continuous = true;
+    recog.interimResults = true;
+    recog.lang = lang;
+    recog.onresult = (e) => {
+      let finalText = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t + " ";
+      }
+      if (finalText.trim()) {
+        // Detect locale from finalized chunk and restart with new lang if needed
+        const detected = detectLangFromText(finalText);
+        if (detected && detected !== lang) {
+          setLang(detected);
+          try { recog.stop(); } catch {}
+          // The recognition instance will be rebuilt with new lang by this effect
+        }
+        setInput((prev) => (prev ? prev + " " : "") + finalText.trim());
+      }
+    };
+    recog.onend = async () => {
+      setListening(false);
+      if (autoSendRef.current) {
+        autoSendRef.current = false;
+        if (input.trim()) {
+          await handleSend();
+        }
+      }
+    };
+    recognitionRef.current = recog;
+  }, [lang]);
+
+  useEffect(() => {
+    return () => {
+      try { window.speechSynthesis?.cancel(); } catch {}
+      try { recognitionRef.current?.stop(); } catch {}
+    };
+  }, []);
+
+  const toggleListening = () => {
+    const recog = recognitionRef.current;
+    if (!recog) {
+      alert("Speech recognition not supported in this browser.");
+      return;
+    }
+    if (listening) {
+      try { recog.stop(); } catch {}
+      setListening(false);
+    } else {
+      try { autoSendRef.current = true; recog.start(); setListening(true); } catch {}
+    }
+  };
+
+  const speakMessage = (index, text) => {
+    if (!window.speechSynthesis) {
+      alert("Speech synthesis not supported in this browser.");
+      return;
+    }
+    // If clicking the one already speaking => pause/stop
+    if (speakingIndex === index) {
+      try { window.speechSynthesis.cancel(); } catch {}
+      setSpeakingIndex(null);
+      utterRef.current = null;
+      return;
+    }
+    // Start speaking selected
+    try { window.speechSynthesis.cancel(); } catch {}
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang;
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    try {
+      const voices = window.speechSynthesis?.getVoices?.() || [];
+      const v = voices.find(v => v.lang === lang);
+      if (v) u.voice = v;
+    } catch {}
+    u.onend = () => {
+      setSpeakingIndex(null);
+      utterRef.current = null;
+    };
+    utterRef.current = u;
+    setSpeakingIndex(index);
+    window.speechSynthesis.speak(u);
+  };
 
   const sendPromptToBackend = async (problem) => {
     try {
@@ -247,7 +375,7 @@ export default function Chat() {
   const handleSuggestionClick = async (suggestion) => {
     setMessages([{ sender: "user", text: suggestion }]);
     setIsTyping(true);
-    
+
     const aiResponse = await sendPromptToBackend(suggestion);
     setIsTyping(false);
     setMessages((prev) => [
@@ -269,12 +397,12 @@ export default function Chat() {
                 transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
               >
                 {/* Hero Icon */}
-                <motion.div 
+                <motion.div
                   className="relative w-20 h-20 mx-auto mb-6"
-                  animate={{ 
+                  animate={{
                     y: [0, -8, 0],
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 4,
                     repeat: Infinity,
                     ease: "easeInOut"
@@ -294,13 +422,13 @@ export default function Chat() {
                   </span>
                 </h2>
                 <p className="text-slate-600 text-sm mb-8 max-w-xl mx-auto leading-relaxed">
-                  Get expert guidance on Indian Constitutional Law, fundamental rights, 
+                  Get expert guidance on Indian Constitutional Law, fundamental rights,
                   and legal procedures powered by AI
                 </p>
 
                 {/* Suggestion Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto">
-                  {[
+                  { [
                     { text: "What are my fundamental rights under the Constitution?", icon: "🏛️", gradient: "from-blue-500 to-indigo-600" },
                     { text: "How can I file a Public Interest Litigation?", icon: "📜", gradient: "from-purple-500 to-pink-600" },
                     { text: "Explain Right to Life under Article 21", icon: "⚖️", gradient: "from-emerald-500 to-teal-600" },
@@ -326,7 +454,7 @@ export default function Chat() {
                         </span>
                       </div>
                     </motion.button>
-                  ))}
+                  )) }
                 </div>
               </motion.div>
             </div>
@@ -345,10 +473,10 @@ export default function Chat() {
                 >
                   <div className={`flex gap-5 max-w-4xl ${msg.sender === "user" ? "flex-row-reverse" : "flex-row"}`}>
                     {/* Avatar */}
-                    <motion.div 
+                    <motion.div
                       className={`flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center shadow-xl ${
-                        msg.sender === "user" 
-                          ? "bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800 text-white" 
+                        msg.sender === "user"
+                          ? "bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800 text-white"
                           : "bg-gradient-to-br from-slate-200 to-slate-300 text-slate-700"
                       }`}
                       whileHover={{ scale: 1.1, rotate: msg.sender === "user" ? -5 : 5 }}
@@ -381,11 +509,37 @@ export default function Chat() {
                           )}
                         </div>
                       </motion.div>
+                      {/* Per-message read aloud control for bot replies */}
+                      {msg.sender === "bot" && (
+                        <div className="mt-2">
+                          <button
+                            onClick={() => speakMessage(i, msg.text)}
+                            className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                              speakingIndex === i
+                                ? "border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100"
+                                : "border-gray-200 text-slate-600 bg-white hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700"
+                            }`}
+                            title={speakingIndex === i ? "Stop reading" : "Read aloud"}
+                          >
+                            {speakingIndex === i ? (
+                              <>
+                                <Pause className="w-3.5 h-3.5" />
+                                <span>Pause</span>
+                              </>
+                            ) : (
+                              <>
+                                <Volume2 className="w-3.5 h-3.5" />
+                                <span>Read aloud</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
               ))}
-              
+
               {/* Typing Indicator */}
               {isTyping && (
                 <motion.div
@@ -408,14 +562,14 @@ export default function Chat() {
                             <motion.span
                               key={i}
                               className="w-2.5 h-2.5 bg-emerald-600 rounded-full"
-                              animate={{ 
-                                scale: [1, 1.3, 1], 
-                                opacity: [0.4, 1, 0.4] 
+                              animate={{
+                                scale: [1, 1.3, 1],
+                                opacity: [0.4, 1, 0.4],
                               }}
-                              transition={{ 
-                                duration: 1.2, 
-                                repeat: Infinity, 
-                                delay 
+                              transition={{
+                                duration: 1.2,
+                                repeat: Infinity,
+                                delay,
                               }}
                             />
                           ))}
@@ -435,7 +589,7 @@ export default function Chat() {
       <div className="relative border-t border-emerald-100/50 bg-white/60 backdrop-blur-xl p-4">
         <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/5 to-transparent"></div>
         <div className="relative max-w-5xl mx-auto">
-          <div className="flex items-end gap-3 bg-white border-2 border-slate-300/60 rounded-2xl p-1.5 shadow-xl hover:border-emerald-500/60 focus-within:border-emerald-600 transition-all duration-300">
+          <div className="flex items-end gap-2 bg-white border-2 border-slate-300/60 rounded-2xl p-1.5 shadow-xl hover:border-emerald-500/60 focus-within:border-emerald-600 transition-all duration-300">
             <input
               type="text"
               placeholder="Ask about constitutional law..."
@@ -444,6 +598,20 @@ export default function Chat() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             />
+            {/* Single Mic button to capture voice and auto-send on stop */}
+            <motion.button
+              onClick={toggleListening}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`inline-flex items-center justify-center w-10 h-10 rounded-xl transition border ${
+                listening
+                  ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
+                  : "bg-white border-gray-200 text-slate-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700"
+              }`}
+              title={listening ? "Stop recording" : "Start voice input"}
+            >
+              <Mic className="w-5 h-5" />
+            </motion.button>
             <motion.button
               onClick={handleSend}
               disabled={!input.trim()}
@@ -454,6 +622,7 @@ export default function Chat() {
               <Send size={20} strokeWidth={2.5} />
             </motion.button>
           </div>
+
           <p className="text-xs text-slate-500 text-center mt-3 font-medium">
             Samvidhan.ai provides general legal information. Always consult a qualified lawyer for specific legal advice.
           </p>

@@ -7,3 +7,4 @@ router.get("/", listNotifications);
 router.patch("/:id/read", markRead);
 
 export default router;
+ 

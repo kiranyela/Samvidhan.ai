@@ -1,8 +1,25 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const applyAuth = () => setIsLoggedIn(localStorage.getItem("auth") === "true");
+    applyAuth();
+    const onStorage = (e) => {
+      if (["auth","role","email"].includes(e.key)) applyAuth();
+    };
+    const onAuthChanged = () => applyAuth();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("auth-changed", onAuthChanged);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("auth-changed", onAuthChanged);
+    };
+  }, []);
 
   return (
     <main className="">
@@ -28,15 +45,17 @@ export default function Home() {
         </motion.p>
 
         <div className="mt-8 flex flex-wrap justify-center gap-4">
-          <motion.button
-            onClick={() => navigate("/roleselection")}
-            className="rounded-xl bg-emerald-600 text-white px-6 py-3 text-base sm:text-lg font-medium shadow-md hover:bg-emerald-700 transition-all"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-          >
-            Get Started →
-          </motion.button>
+          {!isLoggedIn && (
+            <motion.button
+              onClick={() => navigate("/roleselection")}
+              className="rounded-xl bg-emerald-600 text-white px-6 py-3 text-base sm:text-lg font-medium shadow-md hover:bg-emerald-700 transition-all"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+            >
+              Get Started →
+            </motion.button>
+          )}
 
           <motion.button
             onClick={() => navigate("/chat")}

@@ -10,6 +10,8 @@ router.get("/:id", getPost);
 
 // Create post with up to 5 attachments under field name 'attachments'
 router.post("/", upload.array("attachments", 5), createPost);
+// Update status (accept/reject/pending)
+router.patch("/:id/status", updateStatus);
 router.patch("/:id", updatePost);
 router.delete("/:id", deletePost);
 router.post("/:id/attachments", upload.array("attachments", 5), addAttachments);
