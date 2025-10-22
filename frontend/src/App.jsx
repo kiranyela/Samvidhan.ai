@@ -13,6 +13,9 @@ import RoleSelection from "./pages/RoleSelection";
 import NGOSignup from "./pages/NGOSignup";
 import NGOLogin from "./pages/NGOLogin";
 import NGODashboard from "./pages/NGODashboard";
+import PostProblem from "./pages/PostProblem";
+import UserDashboard from "./pages/UserDashboard";
+import Notifications from "./pages/Notifications";
 
 function AppContent() {
   const [authStatus] = useState(false);
@@ -30,6 +33,9 @@ function AppContent() {
         <Route path="/ngosignup" element={<NGOSignup/>}/>
         <Route path="/ngologin" element={<NGOLogin/>}/>
         <Route path="/ngodashboard" element={<NGODashboard/>}/>
+        <Route path="/dashboard" element={<UserDashboard/>}/>
+        <Route path="/post" element={<PostProblem/>}/>
+        <Route path="/notifications" element={<Notifications/>}/>
         <Route path="/chat" element={<Chat />} />
       </Routes>
       {isHomePage && (

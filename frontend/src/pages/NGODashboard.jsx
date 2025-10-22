@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -8,6 +8,7 @@ import {
   Bookmark,
   MoreHorizontal,
 } from "lucide-react";
+import api from "../lib/api";
 
 // Moved static data outside the component
 const initialCases = [
@@ -97,9 +98,73 @@ const initialCases = [
 
 export default function NGODashboard() {
   const [selectedTab, setSelectedTab] = useState("pending");
-  const [cases] = useState(initialCases);
+  const [cases, setCases] = useState(initialCases);
+  const ngoEmail = (typeof window !== 'undefined' && localStorage.getItem("email")) || "";
+  const ngoName = ngoEmail ? ngoEmail.split("@")[0] : "";
+  const [previewSrc, setPreviewSrc] = useState(null);
 
-  const filteredCases = cases.filter((c) => c.status === selectedTab);
+  const isImage = (a) => {
+    const mt = a?.mimeType || "";
+    const url = a?.url || "";
+    return mt.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url);
+  };
+  const isPDF = (a) => {
+    const mt = a?.mimeType || "";
+    const url = a?.url || "";
+    return mt === "application/pdf" || /\.pdf$/i.test(url);
+  };
+
+  const fetchPosts = async () => {
+    try {
+      const res = await api.get("/v1/posts");
+      const posts = res?.data?.data || [];
+      const mapped = posts.map((p) => {
+        const userName = p.contactEmail
+          ? p.contactEmail.split("@")[0]
+          : (p.authorType || "user");
+        const avatar = userName
+          .split(" ")
+          .map((s) => s.charAt(0).toUpperCase())
+          .join("")
+          .slice(0, 2) || "US";
+        return {
+          id: p._id,
+          title: (p.description || "User Query").slice(0, 40) + (p.description && p.description.length > 40 ? "..." : ""),
+          description: p.description || "",
+          category: p.category || "General",
+          severity: (p.urgency || "medium").charAt(0).toUpperCase() + (p.urgency || "medium").slice(1),
+          location: p.location || "",
+          submittedDate: p.createdAt || new Date().toISOString(),
+          userName,
+          avatar,
+          status: p.status || "pending",
+          acceptedBy: p.acceptedBy || null,
+          attachments: Array.isArray(p.attachments) ? p.attachments : [],
+          pilEligible: false,
+          comments: 0,
+          likes: 0,
+        };
+      });
+      setCases(mapped);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const filteredCases = useMemo(() => {
+    if (selectedTab === "accepted") {
+      return cases.filter((c) => {
+        if (c.status !== "accepted") return false;
+        // If we have acceptedBy info, only show if it's this NGO
+        if (c.acceptedBy && c.acceptedBy.ngoEmail) {
+          return c.acceptedBy.ngoEmail === ngoEmail;
+        }
+        // Legacy accepted posts without acceptedBy: show so they are not hidden
+        return true;
+      });
+    }
+    return cases.filter((c) => c.status === selectedTab);
+  }, [cases, selectedTab, ngoEmail]);
 
   const { pendingCount, acceptedCount, pilCount } = useMemo(() => {
     return {
@@ -122,13 +187,41 @@ export default function NGODashboard() {
     }
   };
 
-  const handleAcceptCase = (caseId) => {
-    alert(`Case #${caseId} has been accepted. The user will be notified.`);
+  const updateCaseStatus = async (caseId, status) => {
+    try {
+      // optimistic update
+      setCases((prev) => prev.map((c) => (c.id === caseId ? { ...c, status } : c)));
+      await api.patch(`/v1/posts/${caseId}/status`, { status, ngoName, ngoEmail });
+      // notify same-tab listeners and refresh
+      try { window.dispatchEvent(new Event("posts-changed")); } catch {}
+      fetchPosts();
+    } catch (e) {
+      console.error(e);
+      // revert on error by refetching
+      try {
+        await fetchPosts();
+      } catch {}
+      alert("Failed to update status");
+    }
   };
 
   const handleFilePIL = (caseId) => {
     alert(`Initiating PIL filing process for Case #${caseId}`);
   };
+
+  useEffect(() => {
+    fetchPosts();
+    const id = setInterval(fetchPosts, 10000); // poll every 10s
+    const onPostsChanged = () => fetchPosts();
+    window.addEventListener("posts-changed", onPostsChanged);
+    const onKey = (e) => { if (e.key === 'Escape') setPreviewSrc(null); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("posts-changed", onPostsChanged);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -297,6 +390,39 @@ export default function NGODashboard() {
                       </p>
                     </div>
 
+                    {Array.isArray(caseItem.attachments) && caseItem.attachments.length > 0 && (
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {caseItem.attachments.map((a, idx) => (
+                          <div key={idx} onClick={(e) => e.stopPropagation()} className="group">
+                            {isImage(a) ? (
+                              <img
+                                src={a.url}
+                                alt={a.originalName || `attachment-${idx}`}
+                                className="w-full h-40 object-cover rounded-lg border hover:opacity-95 cursor-zoom-in"
+                                loading="lazy"
+                                onClick={() => setPreviewSrc(a.url)}
+                              />
+                            ) : isPDF(a) ? (
+                              <embed
+                                src={a.url}
+                                type="application/pdf"
+                                className="w-full h-64 rounded-lg border"
+                              />
+                            ) : (
+                              <a
+                                href={a.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-sm text-emerald-700 underline truncate inline-block"
+                              >
+                                {a.originalName || a.url}
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Metadata */}
                     <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                       <div className="flex items-center gap-1">
@@ -315,23 +441,7 @@ export default function NGODashboard() {
                       <span>{caseItem.category}</span>
                     </div>
 
-                    {/* Social Interaction Bar */}
-                    <div className="flex items-center justify-between text-gray-500 mt-4 pt-3 border-t border-gray-100">
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5 text-sm hover:text-blue-500"
-                      >
-                        <Share2 className="w-4 h-4" />
-                        <span>Share</span>
-                      </button>
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="hidden sm:flex items-center gap-1.5 text-sm hover:text-yellow-500"
-                      >
-                        <Bookmark className="w-4 h-4" />
-                        <span>Save</span>
-                      </button>
-                    </div>
+                    {/* Social Interaction Bar removed */}
 
                     {/* Action Buttons */}
                     {selectedTab === "pending" && (
@@ -340,7 +450,7 @@ export default function NGODashboard() {
                           className="flex-1 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleAcceptCase(caseItem.id);
+                            updateCaseStatus(caseItem.id, "accepted");
                           }}
                         >
                           Accept Case
@@ -360,7 +470,7 @@ export default function NGODashboard() {
                           className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            alert(`Case #${caseItem.id} rejected`);
+                            updateCaseStatus(caseItem.id, "rejected");
                           }}
                         >
                           Reject
@@ -406,6 +516,22 @@ export default function NGODashboard() {
           </div>
         </div>
       </div>
+      {/* Image Lightbox */}
+      {previewSrc && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/75 flex items-center justify-center p-4"
+          onClick={() => setPreviewSrc(null)}
+        >
+          <div className="max-w-5xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={previewSrc}
+              alt="preview"
+              className="max-w-full max-h-[90vh] rounded-xl shadow-2xl"
+            />
+            <div className="text-center mt-2 text-gray-200 text-sm">Press Esc or click outside to close</div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

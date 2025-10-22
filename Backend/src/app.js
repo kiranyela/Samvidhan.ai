@@ -6,6 +6,8 @@ import { PASSPORT as passport } from "./config/passport.js";
 import userRouter from "./routes/user.routes.js";
 import chatRouter from "./routes/chat.routes.js";
 import ngoRouter from "./routes/ngo.routes.js";
+import postRouter from "./routes/post.routes.js";
+import notificationRouter from "./routes/notification.routes.js";
 
 
 
@@ -40,6 +42,8 @@ app.use(passport.session());
 app.use("/api/v1/users", userRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/v1/ngos", ngoRouter);
+app.use("/api/v1/posts", postRouter);
+app.use("/api/v1/notifications", notificationRouter);
 
 // centralized error handler (returns JSON instead of HTML)
 // must be after routes

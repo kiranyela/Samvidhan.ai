@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 const navigationPublic = [
@@ -17,6 +17,8 @@ export default function Header() {
   const [user, setUser] = useState(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const isChat = location.pathname.startsWith("/chat");
 
   // Initialize from localStorage and keep in sync
   useEffect(() => {
@@ -114,6 +116,15 @@ export default function Header() {
                 {item.name}
               </NavLink>
             ))}
+
+            {isChat && (
+              <button
+                onClick={() => navigate("/post")}
+                className="inline-flex items-center px-3 py-1 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+              >
+                Post
+              </button>
+            )}
 
             {/* Show Logout only when user is logged in */}
             {user && (
