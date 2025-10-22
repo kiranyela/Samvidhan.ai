@@ -22,10 +22,10 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="">
-      <section className="text-center px-6 sm:px-12 md:px-20 pt-24 pb-24">
+    <main className="bg-gradient-to-b from-emerald-50/40 via-white to-white">
+      <section className="text-center px-6 sm:px-12 md:px-20 pt-24 pb-24 max-w-6xl mx-auto">
         <motion.h1
-          className="text-2xl sm:text-3xl md:text-4xl font-bold"
+          className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight"
           initial={{ opacity: 0, y: -40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -35,7 +35,7 @@ export default function Home() {
         </motion.h1>
 
         <motion.p
-          className="mt-3 text-gray-600"
+          className="mt-4 text-gray-600 max-w-2xl mx-auto"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.3 }}
@@ -44,11 +44,11 @@ export default function Home() {
           authority and official portal.
         </motion.p>
 
-        <div className="mt-8 flex flex-wrap justify-center gap-4">
+        <div className="mt-10 flex flex-wrap justify-center gap-4">
           {!isLoggedIn && (
             <motion.button
               onClick={() => navigate("/roleselection")}
-              className="rounded-xl bg-emerald-600 text-white px-6 py-3 text-base sm:text-lg font-medium shadow-md hover:bg-emerald-700 transition-all"
+              className="rounded-xl bg-emerald-600 text-white px-6 py-3 text-base sm:text-lg font-medium shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 transition-all"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.5 }}
@@ -59,7 +59,7 @@ export default function Home() {
 
           <motion.button
             onClick={() => navigate("/chat")}
-            className="rounded-xl bg-white border border-emerald-600 text-emerald-700 px-6 py-3 text-base sm:text-lg font-medium shadow-md hover:bg-emerald-50 transition-all"
+            className="rounded-xl bg-white border border-emerald-600 text-emerald-700 px-6 py-3 text-base sm:text-lg font-medium shadow-md hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 transition-all"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.6 }}

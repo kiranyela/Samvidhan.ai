@@ -191,6 +191,42 @@ export default function UserDashboard() {
                 </div>
               </div>
 
+              {p.status === 'accepted' && p.acceptedBy && (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                  <div className="text-xs font-semibold text-emerald-800 mb-1">Assigned NGO</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-gray-800">
+                    {p.acceptedBy.ngoName && (
+                      <div>
+                        <span className="text-gray-500 text-xs">Name: </span>
+                        <span className="font-medium">{p.acceptedBy.ngoName}</span>
+                      </div>
+                    )}
+                    {p.acceptedBy.ngoEmail && (
+                      <div>
+                        <span className="text-gray-500 text-xs">Email: </span>
+                        <a href={`mailto:${p.acceptedBy.ngoEmail}`} className="font-medium text-emerald-700 underline">
+                          {p.acceptedBy.ngoEmail}
+                        </a>
+                      </div>
+                    )}
+                    {p.acceptedBy.ngoPhone && (
+                      <div>
+                        <span className="text-gray-500 text-xs">Phone: </span>
+                        <a href={`tel:${p.acceptedBy.ngoPhone}`} className="font-medium text-emerald-700">
+                          {p.acceptedBy.ngoPhone}
+                        </a>
+                      </div>
+                    )}
+                    {p.acceptedBy.ngoAddress && (
+                      <div className="sm:col-span-2">
+                        <span className="text-gray-500 text-xs">Address: </span>
+                        <span className="font-medium break-words">{p.acceptedBy.ngoAddress}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {editingId === p._id ? (
                 <div className="mt-3 space-y-3">
                   <div>

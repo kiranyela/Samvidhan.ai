@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+:root {
+  --bg: 246 248 250;
+  --fg: 17 24 39;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  scrollbar-color: #d1d5db transparent;
+}

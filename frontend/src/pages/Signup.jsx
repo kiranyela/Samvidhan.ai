@@ -40,7 +40,7 @@ export default function UserRegister() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-white px-4">
       <motion.div
         className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8"
         initial={{ opacity: 0, y: 50 }}
@@ -61,7 +61,7 @@ export default function UserRegister() {
           <input
             type="text"
             placeholder="Full Name"
-            className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition"
             {...register("fullName", { required: "Full name is required" })}
           />
           {errors.fullName && (
@@ -71,7 +71,7 @@ export default function UserRegister() {
           <input
             type="email"
             placeholder="Email"
-            className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition"
             {...register("email", { required: "Email is required" })}
           />
           {errors.email && (
@@ -81,7 +81,7 @@ export default function UserRegister() {
           <input
             type="password"
             placeholder="Password"
-            className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition"
             {...register("password", {
               required: "Password is required",
               minLength: { value: 6, message: "Min length is 6" },
@@ -94,7 +94,7 @@ export default function UserRegister() {
           <input
             type="password"
             placeholder="Confirm Password"
-            className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition"
             {...register("confirmPassword", {
               required: "Confirm your password",
             })}
@@ -107,7 +107,7 @@ export default function UserRegister() {
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-emerald-600 text-white py-2 font-medium shadow-sm hover:bg-emerald-700 transition"
+            className="w-full rounded-xl bg-emerald-600 text-white py-2 font-medium shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 transition"
           >
             Register
           </button>
@@ -118,7 +118,7 @@ export default function UserRegister() {
             onClick={() => {
               window.location.href = "http://localhost:5000/api/v1/users/google";
             }}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-2 font-medium shadow-sm hover:bg-gray-50 transition"
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-2 font-medium shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400/30 transition"
           >
             <img
               src="https://www.svgrepo.com/show/355037/google.svg"

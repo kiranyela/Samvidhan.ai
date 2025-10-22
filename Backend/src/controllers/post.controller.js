@@ -79,11 +79,29 @@ export const createPost = async (req, res, next) => {
 
 export const listPosts = async (req, res, next) => {
   try {
-    const { limit = 20, page = 1 } = req.query;
+    const { limit = 20, page = 1, ngoId } = req.query;
     const l = Math.min(parseInt(limit, 10) || 20, 100);
     const p = Math.max(parseInt(page, 10) || 1, 1);
 
-    const posts = await Post.find({})
+    // Base filter
+    const filter = {};
+
+    // If an NGO is requesting its feed, hide posts accepted by other NGOs,
+    // and hide posts that this NGO has already rejected.
+    if (ngoId) {
+      filter.$and = [
+        {
+          $or: [
+            { 'acceptedBy.ngoId': null },
+            { 'acceptedBy.ngoId': { $exists: false } },
+            { 'acceptedBy.ngoId': ngoId },
+          ],
+        },
+        { 'rejectedBy.ngoId': { $ne: ngoId } },
+      ];
+    }
+
+    const posts = await Post.find(filter)
       .sort({ createdAt: -1 })
       .skip((p - 1) * l)
       .limit(l)
@@ -188,14 +206,43 @@ export const updateStatus = async (req, res, next) => {
     if (!['pending', 'accepted', 'rejected'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
-    const update = { status };
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ success: false, message: 'Not found' });
+
+    // Handle accept: mark acceptedBy and set global status to accepted
     if (status === 'accepted') {
-      update.acceptedBy = { ngoId: ngoId || null, ngoName: ngoName || null, ngoEmail: ngoEmail || null };
+      post.status = 'accepted';
+      post.acceptedBy = { ngoId: ngoId || null, ngoName: ngoName || null, ngoEmail: ngoEmail || null };
+      // If previously rejectedBy contains this NGO, remove it (no longer relevant)
+      if (ngoId) {
+        post.rejectedBy = (post.rejectedBy || []).filter(r => String(r.ngoId) !== String(ngoId));
+      }
     }
-    if (status === 'pending' || status === 'rejected') {
-      update.acceptedBy = { ngoId: null, ngoName: null, ngoEmail: null };
+
+    // Handle reject: do NOT globally set status to rejected. Instead mark this NGO in rejectedBy
+    if (status === 'rejected') {
+      if (ngoId) {
+        const exists = (post.rejectedBy || []).some(r => String(r.ngoId) === String(ngoId));
+        if (!exists) {
+          post.rejectedBy = post.rejectedBy || [];
+          post.rejectedBy.push({ ngoId, ngoName: ngoName || null, ngoEmail: ngoEmail || null });
+        }
+      }
+      // If this NGO was the accepting NGO, unaccept and move back to pending
+      if (post.acceptedBy?.ngoId && ngoId && String(post.acceptedBy.ngoId) === String(ngoId)) {
+        post.acceptedBy = { ngoId: null, ngoName: null, ngoEmail: null };
+        post.status = 'pending';
+      }
+      // Otherwise, keep current global status (pending or accepted by someone else)
     }
-    const post = await Post.findByIdAndUpdate(id, { $set: update }, { new: true });
+
+    // Handle pending: clear acceptedBy. Do not modify rejectedBy
+    if (status === 'pending') {
+      post.acceptedBy = { ngoId: null, ngoName: null, ngoEmail: null };
+      post.status = 'pending';
+    }
+
+    await post.save();
     if (!post) return res.status(404).json({ success: false, message: 'Not found' });
     // Create a notification to the user who posted (if contactEmail is present)
     if (post.contactEmail) {

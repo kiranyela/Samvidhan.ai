@@ -51,7 +51,7 @@ export default function PostProblem() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-6">
+    <main className="min-h-screen bg-gradient-to-b from-emerald-50 to-white px-4 py-6">
       <div className="max-w-2xl mx-auto">
         <motion.div
           className="bg-white rounded-2xl shadow p-5"
@@ -68,7 +68,7 @@ export default function PostProblem() {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={6}
                 placeholder="Describe your legal issue, context, and what help you need..."
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition"
               />
             </div>
 
@@ -80,7 +80,7 @@ export default function PostProblem() {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   placeholder="e.g., Employment Rights, Civil Rights"
-                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition"
                 />
               </div>
               <div>
@@ -90,7 +90,7 @@ export default function PostProblem() {
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="City, State"
-                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition"
                 />
               </div>
               <div>
@@ -100,7 +100,7 @@ export default function PostProblem() {
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition"
                 />
               </div>
             </div>
@@ -111,7 +111,7 @@ export default function PostProblem() {
                 type="file"
                 multiple
                 onChange={handleFiles}
-                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
               />
               {files.length > 0 && (
                 <p className="mt-1 text-xs text-gray-500">{files.length} file(s) selected</p>
@@ -122,14 +122,14 @@ export default function PostProblem() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-xl bg-emerald-600 text-white px-6 py-2 text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+                className="rounded-xl bg-emerald-600 text-white px-6 py-2 text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "Posting..." : "Post"}
               </button>
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="rounded-xl bg-white border border-gray-300 text-gray-700 px-6 py-2 text-sm hover:bg-gray-50"
+                className="rounded-xl bg-white border border-gray-300 text-gray-700 px-6 py-2 text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
               >
                 Cancel
               </button>

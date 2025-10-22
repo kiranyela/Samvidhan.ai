@@ -216,6 +216,7 @@ export default function Chat() {
   const utterRef = useRef(null);
   const autoSendRef = useRef(false);
   const [lang, setLang] = useState("en-IN");
+  const srSupported = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
   // Lightweight script-based detection to infer locale
   const detectLangFromText = (text) => {
@@ -604,11 +605,14 @@ export default function Chat() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`inline-flex items-center justify-center w-10 h-10 rounded-xl transition border ${
-                listening
+                !srSupported
+                  ? "bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed"
+                  : listening
                   ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100"
                   : "bg-white border-gray-200 text-slate-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700"
               }`}
-              title={listening ? "Stop recording" : "Start voice input"}
+              disabled={!srSupported}
+              title={!srSupported ? "Voice input not supported in this browser" : (listening ? "Stop recording" : "Start voice input")}
             >
               <Mic className="w-5 h-5" />
             </motion.button>

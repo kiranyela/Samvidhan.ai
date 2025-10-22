@@ -1,4 +1,5 @@
 import React, { useEffect, useState ,useRef} from "react";
+import { motion } from "framer-motion";
 import TimelineCard from "./TimelineCard";
 import ProblemIcon from '../assets/UserTimeline/problem.png'
 import AnalysisIcon from '../assets/UserTimeline/analysis.png'
@@ -38,8 +39,16 @@ const UserTimeline = () => {
     },
   ];
   return (
-    <div className="min-h-screen bg-gradient-to-br  pt-5 md:py-5 pb-0 overflow-hidden">
-      <h1 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight pl-10 pb-10">For Citizens</h1>
+    <div className="min-h-screen bg-gradient-to-br pt-5 md:py-5 pb-0 overflow-hidden">
+      <motion.h1
+        className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight px-6 sm:px-10 pb-6"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+      >
+        For Citizens
+      </motion.h1>
       <div className="container mx-auto px-4 md:px-6 max-w-4xl">
         <div className="relative">
           {steps.map((step, index) => (

@@ -103,7 +103,7 @@ export default function NGOLogin() {
               value={ngoId}
               onChange={(e) => setNgoId(e.target.value)}
               placeholder="Enter your NGO ID or Registration Number"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition-all"
               disabled={otpSent}
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -120,7 +120,7 @@ export default function NGOLogin() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter registered email or phone"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition-all"
               disabled={otpSent}
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -142,7 +142,7 @@ export default function NGOLogin() {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="Enter the OTP sent to you"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition-all"
               />
               <p className="mt-1 text-xs text-gray-500">
                 Check your email or phone for the OTP
@@ -155,7 +155,7 @@ export default function NGOLogin() {
               <motion.button
                 onClick={handleRequestOTP}
                 disabled={loading}
-                className="w-full rounded-xl bg-emerald-600 text-white px-6 py-3 text-base font-medium shadow-md hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-xl bg-emerald-600 text-white px-6 py-3 text-base font-medium shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -166,7 +166,7 @@ export default function NGOLogin() {
                 <motion.button
                   onClick={handleLogin}
                   disabled={loading}
-                  className="w-full rounded-xl bg-emerald-600 text-white px-6 py-3 text-base font-medium shadow-md hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-xl bg-emerald-600 text-white px-6 py-3 text-base font-medium shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   initial={{ opacity: 0, y: 10 }}
@@ -181,7 +181,7 @@ export default function NGOLogin() {
                     setOtpSent(false);
                     setOtp("");
                   }}
-                  className="w-full rounded-xl bg-white border border-emerald-600 text-emerald-700 px-6 py-3 text-sm font-medium shadow-sm hover:bg-emerald-50 transition-all"
+                  className="w-full rounded-xl bg-white border border-emerald-600 text-emerald-700 px-6 py-3 text-sm font-medium shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition-all"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.1 }}
@@ -202,7 +202,8 @@ export default function NGOLogin() {
           <p className="text-sm text-gray-600">
             Don't have an account?{" "}
             <button
-              className="text-emerald-600 font-medium hover:text-emerald-700 transition-colors"
+              onClick={() => navigate('/ngosignup')}
+              className="text-emerald-600 font-medium hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/30 rounded transition-colors"
             >
               Register here
             </button>

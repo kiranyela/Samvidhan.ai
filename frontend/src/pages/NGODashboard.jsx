@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -7,6 +7,8 @@ import {
   Share2,
   Bookmark,
   MoreHorizontal,
+  ChevronDown,
+  Search,
 } from "lucide-react";
 import api from "../lib/api";
 
@@ -102,11 +104,101 @@ export default function NGODashboard() {
   const ngoEmail = (typeof window !== 'undefined' && localStorage.getItem("email")) || "";
   const ngoName = ngoEmail ? ngoEmail.split("@")[0] : "";
   const [previewSrc, setPreviewSrc] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [filterSeverity, setFilterSeverity] = useState("All");
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isCatOpen, setIsCatOpen] = useState(false);
+  const [isSevOpen, setIsSevOpen] = useState(false);
+  const [catSearch, setCatSearch] = useState("");
+  const catRef = useRef(null);
+  const sevRef = useRef(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [detailsCase, setDetailsCase] = useState(null);
 
   const isImage = (a) => {
     const mt = a?.mimeType || "";
     const url = a?.url || "";
     return mt.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url);
+  };
+
+  const downloadAttachments = async (attachments = []) => {
+    for (let i = 0; i < attachments.length; i++) {
+      const a = attachments[i];
+      const fname = a?.originalName || `attachment-${i+1}`;
+      try {
+        const res = await fetch(a.url, { mode: 'cors' });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fname;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        try { window.open(a.url, '_blank'); } catch {}
+      }
+    }
+  };
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (catRef.current && !catRef.current.contains(e.target)) setIsCatOpen(false);
+      if (sevRef.current && !sevRef.current.contains(e.target)) setIsSevOpen(false);
+      // close per-item menu if clicking outside of any menu button
+      if (!e.target.closest?.('[data-menu-root="true"]')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  const exportToCSV = (rows, filename = "cases.csv") => {
+    try {
+      const headers = [
+        "id","title","description","category","severity","location","status","submittedDate","acceptedByEmail"
+      ];
+      const lines = [headers.join(",")].concat(
+        rows.map(r => [
+          r.id,
+          JSON.stringify(r.title || ""),
+          JSON.stringify(r.description || ""),
+          r.category || "",
+          r.severity || "",
+          r.location || "",
+          r.status || "",
+          r.submittedDate || "",
+          r.acceptedBy?.ngoEmail || ""
+        ].join(","))
+      );
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Failed to export CSV");
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const bulkUpdate = async (status) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    for (const id of ids) {
+      try { await updateCaseStatus(id, status); } catch {}
+    }
+    setSelectedIds(new Set());
   };
   const isPDF = (a) => {
     const mt = a?.mimeType || "";
@@ -139,6 +231,8 @@ export default function NGODashboard() {
           avatar,
           status: p.status || "pending",
           acceptedBy: p.acceptedBy || null,
+          userEmail: p.contactEmail || "",
+          userPhone: p.contactPhone || "",
           attachments: Array.isArray(p.attachments) ? p.attachments : [],
           pilEligible: false,
           comments: 0,
@@ -152,19 +246,30 @@ export default function NGODashboard() {
   };
 
   const filteredCases = useMemo(() => {
+    // Base by tab
+    let base = [];
     if (selectedTab === "accepted") {
-      return cases.filter((c) => {
+      base = cases.filter((c) => {
         if (c.status !== "accepted") return false;
-        // If we have acceptedBy info, only show if it's this NGO
-        if (c.acceptedBy && c.acceptedBy.ngoEmail) {
-          return c.acceptedBy.ngoEmail === ngoEmail;
-        }
-        // Legacy accepted posts without acceptedBy: show so they are not hidden
+        if (c.acceptedBy && c.acceptedBy.ngoEmail) return c.acceptedBy.ngoEmail === ngoEmail;
         return true;
       });
+    } else {
+      base = cases.filter((c) => c.status === selectedTab);
     }
-    return cases.filter((c) => c.status === selectedTab);
-  }, [cases, selectedTab, ngoEmail]);
+    // Apply filters
+    const cat = filterCategory;
+    const sev = filterSeverity;
+    const q = search.trim().toLowerCase();
+    return base.filter((c) => {
+      const okCat = cat === "All" || (c.category || "").toLowerCase() === cat.toLowerCase();
+      const okSev = sev === "All" || (c.severity || "").toLowerCase() === sev.toLowerCase();
+      const okQ = !q || [c.title, c.description, c.location, c.category]
+        .map((v) => (v || "").toLowerCase())
+        .some((v) => v.includes(q));
+      return okCat && okSev && okQ;
+    });
+  }, [cases, selectedTab, ngoEmail, filterCategory, filterSeverity, search]);
 
   const { pendingCount, acceptedCount, pilCount } = useMemo(() => {
     return {
@@ -262,8 +367,11 @@ export default function NGODashboard() {
             <h2 className="font-bold text-sm mb-3 text-gray-900">
               Quick Actions
             </h2>
-            <button className="w-full text-left text-sm text-gray-600 hover:bg-gray-50 py-2 px-3 rounded-lg transition-colors">
-              Export Cases
+            <button
+              onClick={() => exportToCSV(filteredCases, `cases_${selectedTab}.csv`)}
+              className="w-full text-left text-sm text-gray-600 hover:bg-gray-50 py-2 px-3 rounded-lg transition-colors"
+            >
+              Export Cases (current view)
             </button>
             <button className="w-full text-left text-sm text-gray-600 hover:bg-gray-50 py-2 px-3 rounded-lg transition-colors">
               Generate Report
@@ -299,6 +407,74 @@ export default function NGODashboard() {
                     layoutId="activeTab"
                   />
                 )}
+
+      {/* Details Modal */}
+      {detailsCase && (
+        <div className="fixed inset-0 z-[120] bg-black/50 flex items-center justify-center p-4" onClick={() => setDetailsCase(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Case Details</h3>
+              <button className="text-gray-500 hover:text-gray-700" onClick={() => setDetailsCase(null)}>Close</button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <div className="text-gray-500">User</div>
+                <div className="font-medium text-gray-900">{detailsCase.userName}</div>
+              </div>
+              {detailsCase.userEmail && (
+                <div>
+                  <div className="text-gray-500">User Email</div>
+                  <div className="font-medium text-gray-900">
+                    <a href={`mailto:${detailsCase.userEmail}`} className="text-emerald-700 underline">{detailsCase.userEmail}</a>
+                  </div>
+                </div>
+              )}
+              {detailsCase.userPhone && (
+                <div>
+                  <div className="text-gray-500">User Phone</div>
+                  <div className="font-medium text-gray-900">
+                    <a href={`tel:${detailsCase.userPhone}`} className="text-emerald-700">{detailsCase.userPhone}</a>
+                  </div>
+                </div>
+              )}
+              <div>
+                <div className="text-gray-500">Submitted</div>
+                <div className="font-medium text-gray-900">{new Date(detailsCase.submittedDate).toLocaleString()}</div>
+              </div>
+              <div>
+                <div className="text-gray-500">Category</div>
+                <div className="font-medium text-gray-900">{detailsCase.category}</div>
+              </div>
+              <div>
+                <div className="text-gray-500">Severity</div>
+                <div className="font-medium text-gray-900">{detailsCase.severity}</div>
+              </div>
+              <div className="sm:col-span-2">
+                <div className="text-gray-500">Location</div>
+                <div className="font-medium text-gray-900">{detailsCase.location || '-'}</div>
+              </div>
+              <div className="sm:col-span-2">
+                <div className="text-gray-500">Description</div>
+                <div className="font-medium text-gray-900 whitespace-pre-wrap">{detailsCase.description}</div>
+              </div>
+              {Array.isArray(detailsCase.attachments) && detailsCase.attachments.length > 0 && (
+                <div className="sm:col-span-2">
+                  <div className="text-gray-500 mb-1">Attachments</div>
+                  <div className="flex flex-wrap gap-2">
+                    {detailsCase.attachments.map((a, idx) => (
+                      <a key={idx} href={a.url} target="_blank" rel="noreferrer" className="text-emerald-700 underline break-all">{a.originalName || a.url}</a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {selectedTab === 'accepted' && (
+                <div className="sm:col-span-2 text-sm text-gray-500">Accepted case</div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
               </button>
               <button
                 onClick={() => setSelectedTab("accepted")}
@@ -335,7 +511,125 @@ export default function NGODashboard() {
             </div>
           </motion.div>
 
+          {/* Filters/Search */}
+          <div className="bg-white border-x border-gray-200 px-4 py-4 flex flex-col sm:flex-row gap-4 items-stretch sm:items-end justify-between">
+            <div className="flex gap-4 flex-1">
+              {/* Category custom dropdown */}
+              <div className="flex-1 min-w-[180px]" ref={catRef}>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsCatOpen(v => !v)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-white text-left flex items-center justify-between hover:border-emerald-400"
+                  >
+                    <span className={filterCategory !== 'All' ? 'text-gray-900' : 'text-gray-400'}>
+                      {filterCategory || 'All'}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-emerald-500 transition-transform duration-200 ${isCatOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isCatOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+                    >
+                      <div className="p-2 border-b border-gray-200 sticky top-0 bg-white">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+                          <input
+                            type="text"
+                            value={catSearch}
+                            onChange={(e) => setCatSearch(e.target.value)}
+                            placeholder="Search categories..."
+                            className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm hover:border-emerald-400"
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-56 overflow-y-auto">
+                        {['All', ...Array.from(new Set(cases.map(c => c.category).filter(Boolean)))
+                          .filter(c => c.toLowerCase().includes(catSearch.toLowerCase()))
+                        ].map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => { setFilterCategory(c); setIsCatOpen(false); setCatSearch(''); }}
+                            className={`w-full text-left px-3 py-2 hover:bg-emerald-50 transition-colors text-sm ${
+                              filterCategory === c ? 'bg-emerald-100 text-emerald-700 font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+
+              {/* Severity custom dropdown */}
+              <div className="flex-1 min-w-[160px]" ref={sevRef}>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Severity</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsSevOpen(v => !v)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none bg-white text-left flex items-center justify-between hover:border-emerald-400"
+                  >
+                    <span className={filterSeverity !== 'All' ? 'text-gray-900' : 'text-gray-400'}>
+                      {filterSeverity}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-emerald-500 transition-transform duration-200 ${isSevOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isSevOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+                    >
+                      {['All','Critical','High','Medium'].map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => { setFilterSeverity(s); setIsSevOpen(false); }}
+                          className={`w-full text-left px-3 py-2 hover:bg-emerald-50 transition-colors text-sm ${
+                            filterSeverity === s ? 'bg-emerald-100 text-emerald-700 font-medium' : 'text-gray-700'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="w-full sm:w-auto sm:min-w-[260px]">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Search</label>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Title, description, location..."
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
           {/* Posts Feed */}
+          {/* Bulk bar */}
+          {selectedTab === 'pending' && selectedIds.size > 0 && (
+            <div className="bg-emerald-50 border-x border-b border-emerald-200 px-4 py-2 flex items-center justify-between sticky top-12 z-10">
+              <div className="text-sm text-emerald-800 font-medium">{selectedIds.size} selected</div>
+              <div className="flex gap-2">
+                <button onClick={() => bulkUpdate('accepted')} className="px-3 py-1.5 text-sm rounded-md bg-emerald-600 text-white hover:bg-emerald-700">Accept</button>
+                <button onClick={() => bulkUpdate('rejected')} className="px-3 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700">Reject</button>
+                <button onClick={() => setSelectedIds(new Set())} className="px-3 py-1.5 text-sm rounded-md border">Clear</button>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white border-x border-gray-200 divide-y divide-gray-200">
             {filteredCases.map((caseItem, index) => (
               <motion.article
@@ -344,8 +638,19 @@ export default function NGODashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
+                onClick={() => setDetailsCase(caseItem)}
               >
                 <div className="flex gap-3">
+                  {/* Select checkbox for bulk on Pending */}
+                  {selectedTab === 'pending' && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(caseItem.id)}
+                      onChange={() => toggleSelect(caseItem.id)}
+                      className="mt-2 w-4 h-4"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
                   {/* Avatar */}
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
                     {caseItem.avatar}
@@ -374,18 +679,67 @@ export default function NGODashboard() {
                         )}
                       </div>
                       <button
-                        className="text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-                        onClick={(e) => e.stopPropagation()}
+                        className="text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors relative"
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === caseItem.id ? null : caseItem.id); }}
+                        data-menu-root="true"
                       >
                         <MoreHorizontal className="w-4 h-4" />
+                        {openMenuId === caseItem.id && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="py-1">
+                              {/* Context aware items */}
+                              <button
+                                className="w-full text-left px-3 py-2 hover:bg-gray-50"
+                                onClick={() => { setDetailsCase(caseItem); setOpenMenuId(null); }}
+                              >
+                                View details
+                              </button>
+                              {selectedTab === 'pending' ? (
+                                <>
+                                  <button className="w-full text-left px-3 py-2 hover:bg-gray-50" onClick={() => { updateCaseStatus(caseItem.id, 'accepted'); setOpenMenuId(null); }}>Accept</button>
+                                  <button className="w-full text-left px-3 py-2 hover:bg-gray-50" onClick={() => { updateCaseStatus(caseItem.id, 'rejected'); setOpenMenuId(null); }}>Reject</button>
+                                </>
+                              ) : (
+                                <>
+                                  {selectedTab === 'accepted' && (
+                                    <>
+                                      <button className="w-full text-left px-3 py-2 hover:bg-gray-50" onClick={() => { updateCaseStatus(caseItem.id, 'rejected'); setOpenMenuId(null); }}>Move to Rejected</button>
+                                    </>
+                                  )}
+                                  {selectedTab === 'rejected' && (
+                                    <button className="w-full text-left px-3 py-2 hover:bg-gray-50" onClick={() => { updateCaseStatus(caseItem.id, 'pending'); setOpenMenuId(null); }}>Reopen as Pending</button>
+                                  )}
+                                </>
+                              )}
+                              <div className="h-px bg-gray-100 my-1" />
+                              {Array.isArray(caseItem.attachments) && caseItem.attachments.length > 0 && (
+                                <button
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-50"
+                                  onClick={async () => {
+                                    await downloadAttachments(caseItem.attachments);
+                                    setOpenMenuId(null);
+                                  }}
+                                >
+                                  Download attachments
+                                </button>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
                       </button>
                     </div>
 
                     <div className="mt-2">
-                      <h3 className="font-semibold text-gray-900 mb-1">
+                      <h3 className="font-semibold text-gray-900 mb-1 truncate">
                         {caseItem.title}
                       </h3>
-                      <p className="text-gray-700 text-sm leading-relaxed">
+                      <p className="text-gray-700 text-sm leading-relaxed break-words max-h-24 overflow-hidden">
                         {caseItem.description}
                       </p>
                     </div>
@@ -424,7 +778,7 @@ export default function NGODashboard() {
                     )}
 
                     {/* Metadata */}
-                    <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 flex-wrap">
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5" />
                         <span>{caseItem.location}</span>

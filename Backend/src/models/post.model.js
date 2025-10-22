@@ -27,6 +27,21 @@ const postSchema = new Schema(
       ngoName: { type: String, default: null },
       ngoEmail: { type: String, default: null },
     },
+    // Track NGOs that have explicitly rejected this post (for per-NGO visibility)
+    rejectedBy: {
+      type: [
+        new Schema(
+          {
+            ngoId: { type: Schema.Types.ObjectId, ref: "Ngo" },
+            ngoName: { type: String },
+            ngoEmail: { type: String },
+            at: { type: Date, default: Date.now },
+          },
+          { _id: false }
+        ),
+      ],
+      default: [],
+    },
     attachments: { type: [attachmentSchema], default: [] },
   },
   { timestamps: true }

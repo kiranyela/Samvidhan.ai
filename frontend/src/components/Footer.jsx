@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Twitter, Linkedin, Github, Mail, Phone } from 'lucide-react';
 
@@ -19,11 +18,10 @@ const Footer = () => {
 
   return (
     <div className="min-h-[60vh] bg-gray-50 flex flex-col">
-      
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 py-6">
+      <footer className="bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-t border-gray-200">
+        <div className="max-w-6xl mx-auto px-6 py-8">
           {/* Main footer content */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             {/* Brand section */}
@@ -46,13 +44,13 @@ const Footer = () => {
               
               {/* Social links */}
               <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors duration-200">
+                <a href="#" target="_blank" rel="noreferrer" aria-label="Twitter" className="text-gray-400 hover:text-emerald-600 focus:text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 rounded transition-colors duration-200">
                   <Twitter size={20} />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors duration-200">
+                <a href="#" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="text-gray-400 hover:text-emerald-600 focus:text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 rounded transition-colors duration-200">
                   <Linkedin size={20} />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors duration-200">
+                <a href="#" target="_blank" rel="noreferrer" aria-label="GitHub" className="text-gray-400 hover:text-emerald-600 focus:text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 rounded transition-colors duration-200">
                   <Github size={20} />
                 </a>
               </div>
@@ -69,7 +67,9 @@ const Footer = () => {
                     <li key={link.name}>
                       <a
                         href={link.href}
-                        className="text-gray-600 hover:text-orange-500 text-sm transition-colors duration-200"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-600 hover:text-emerald-700 focus:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 rounded text-sm transition-colors duration-200"
                       >
                         {link.name}
                       </a>
@@ -82,8 +82,8 @@ const Footer = () => {
 
           {/* Bottom section */}
           <div className="border-t border-gray-200 pt-6 pb-0">
-            <div className="  items-center">
-              <p className="text-gray-500 text-sm mb-4 md:mb-0  text-center">
+            <div className="items-center">
+              <p className="text-gray-500 text-sm mb-4 md:mb-0 text-center">
                 © 2025 Samvidhan.AI. All rights reserved.
               </p>
               

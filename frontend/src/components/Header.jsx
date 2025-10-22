@@ -84,7 +84,7 @@ export default function Header() {
     : navigationPublic;
 
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <nav className="sticky top-0 z-50 bg-white/80 supports-[backdrop-filter]:bg-white/60 backdrop-blur border-b border-gray-200">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-12 items-center justify-between">
           {/* Logo */}
@@ -106,11 +106,11 @@ export default function Header() {
                 key={item.name}
                 to={item.to}
                 className={({ isActive }) =>
-                  `inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition
+                  `inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition rounded focus:outline-none focus:ring-2 focus:ring-emerald-400/40
                   ${
                     isActive
-                      ? "border-indigo-500 text-gray-900"
-                      : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                      ? "border-emerald-600 text-gray-900"
+                      : "border-transparent text-gray-500 hover:border-emerald-300 hover:text-gray-700"
                   }`
                 }
               >
@@ -121,7 +121,7 @@ export default function Header() {
             {isChat && (
               <button
                 onClick={() => navigate("/post")}
-                className="inline-flex items-center px-3 py-1 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+                className="inline-flex items-center px-3 py-1 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
               >
                 Post
               </button>
