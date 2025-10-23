@@ -23,7 +23,7 @@ Millions of citizens struggle with **inaccessible legal language**, **lack of aw
 
 ## ⚙️ Tech Stack
 - **Frontend:** React.js, HTML, CSS, JavaScript
-- **Backend:** Node.js / PHP
+- **Backend:** Node.js
 - **Database:** MySQL
 - **Future Layer:** Natural Language Processing (NLP)
 
@@ -52,12 +52,12 @@ flowchart TD
 
 ### 🔹 Prerequisites
 - Node.js installed
-- MySQL server installed
+-MongoDB server installed
 - Git installed
 
 ### 🔹 Clone the Repository
 ```bash
-git clone https://github.com/<your-username>/Samvidhan.ai.git
+git clone https://github.com/kiranyela/Samvidhan.ai.git
 cd Samvidhan.ai
 ```
 
@@ -65,7 +65,6 @@ cd Samvidhan.ai
 ```bash
 cd frontend
 npm install
-npm start
 ```
 
 ### 🔹 Backend Setup
@@ -86,7 +85,7 @@ npm run dev
 - **70% Gap Reduction** – Bridge divide between citizens & Constitution
 
 ## 👨‍👩‍👦 Team
-- **PramodPillitla**
+- **Pramodh**
 - **Sameed**
 - **Chandu**
 - **KiranYela**
