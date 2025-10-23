@@ -2,6 +2,7 @@ import { Post } from "../models/post.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { Notification } from "../models/notification.model.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
+import { User } from "../models/user.model.js";
 
 export const createPost = async (req, res, next) => {
   try {
@@ -79,7 +80,7 @@ export const createPost = async (req, res, next) => {
 
 export const listPosts = async (req, res, next) => {
   try {
-    const { limit = 20, page = 1, ngoId } = req.query;
+    const { limit = 20, page = 1, ngoId, onlyVerifiedUsers } = req.query;
     const l = Math.min(parseInt(limit, 10) || 20, 100);
     const p = Math.max(parseInt(page, 10) || 1, 1);
 
@@ -99,6 +100,27 @@ export const listPosts = async (req, res, next) => {
         },
         { 'rejectedBy.ngoId': { $ne: ngoId } },
       ];
+    }
+
+    // If onlyVerifiedUsers flag is true, restrict to posts authored by verified users (or non-user authors)
+    if (String(onlyVerifiedUsers).toLowerCase() === 'true') {
+      try {
+        const verifiedIds = await User.find({ isVerified: true }).select('_id').lean();
+        const idList = verifiedIds.map(u => u._id);
+        const verifiedCondition = {
+          $or: [
+            { authorType: { $ne: 'user' } }, // allow NGOs/guests if any
+            { $and: [ { authorType: 'user' }, { authorId: { $in: idList } } ] }
+          ]
+        };
+        if (filter.$and) {
+          filter.$and.push(verifiedCondition);
+        } else {
+          filter.$and = [ verifiedCondition ];
+        }
+      } catch (e) {
+        // fallback: if user lookup fails, default to no additional filter
+      }
     }
 
     const posts = await Post.find(filter)

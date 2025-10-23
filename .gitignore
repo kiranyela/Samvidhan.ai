@@ -17,3 +17,10 @@ Thumbs.db
 
 #docs
 *.pdf
+
+#notes
+*.txt
+
+# Ignore sample images and UML diagrams
+sample images/
+umls/

@@ -8,6 +8,7 @@ import chatRouter from "./routes/chat.routes.js";
 import ngoRouter from "./routes/ngo.routes.js";
 import postRouter from "./routes/post.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
+import adminRouter from "./routes/admin.routes.js";
 
 
 
@@ -44,6 +45,7 @@ app.use("/api/chat", chatRouter);
 app.use("/api/v1/ngos", ngoRouter);
 app.use("/api/v1/posts", postRouter);
 app.use("/api/v1/notifications", notificationRouter);
+app.use("/api/v1/admin", adminRouter);
 
 // centralized error handler (returns JSON instead of HTML)
 // must be after routes

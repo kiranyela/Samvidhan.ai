@@ -208,7 +208,7 @@ export default function NGODashboard() {
 
   const fetchPosts = async () => {
     try {
-      const res = await api.get("/v1/posts");
+      const res = await api.get("/v1/posts", { params: { onlyVerifiedUsers: true } });
       const posts = res?.data?.data || [];
       const mapped = posts.map((p) => {
         const userName = p.contactEmail

@@ -88,6 +88,10 @@ const NgoSchema = new Schema(
       type: String,
       default: null,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
@@ -100,6 +104,7 @@ NgoSchema.methods.generateAccessToken = function () {
       ngoName: this.ngoName,
       email: this.email,
       registrationNumber: this.registrationNumber,
+      isVerified: this.isVerified,
     },
     process.env.ACCESS_TOKEN_SECRET,
     {

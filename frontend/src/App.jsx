@@ -16,6 +16,7 @@ import NGODashboard from "./pages/NGODashboard";
 import PostProblem from "./pages/PostProblem";
 import UserDashboard from "./pages/UserDashboard";
 import Notifications from "./pages/Notifications";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function AppContent() {
   const [authStatus] = useState(false);
@@ -37,6 +38,7 @@ function AppContent() {
         <Route path="/post" element={<PostProblem/>}/>
         <Route path="/notifications" element={<Notifications/>}/>
         <Route path="/chat" element={<Chat />} />
+        <Route path="/admin" element={<AdminDashboard/>} />
       </Routes>
       {isHomePage && (
         <>

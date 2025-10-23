@@ -22,6 +22,15 @@ const userSchema= new Schema({
         required:true,
 
     },
+    isVerified: {
+        type: Boolean,
+        default: false,
+    },
+    role: {
+        type: String,
+        enum: ["user", "admin"],
+        default: "user",
+    },
     refreshToken:{
         type:String,
     }
@@ -46,6 +55,8 @@ userSchema.methods.generateAccessToken = function(){
         _id: this._id,
         fullName: this.fullName,
         email:this.email,
+        role: this.role,
+        isVerified: this.isVerified,
     },process.env.ACCESS_TOKEN_SECRET,{
         expiresIn:process.env.ACCESS_TOKEN_EXPIRY,
     }

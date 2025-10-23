@@ -26,12 +26,22 @@ export default function Login() {
       // backend sets cookies (httpOnly). Persist minimal UI auth state for header/navigation
       try {
         localStorage.setItem("auth", "true");
-        localStorage.setItem("role", "user");
         if (data?.email) localStorage.setItem("email", data.email);
         window.dispatchEvent(new Event("auth-changed"));
       } catch {}
-      reset();
-      navigate("/chat");
+      // check if admin and redirect accordingly
+      try {
+        const me = await api.get("/v1/users/me");
+        const isAdmin = !!me?.data?.user?.isAdmin;
+        const role = me?.data?.user?.role || "user";
+        try { localStorage.setItem("role", role); } catch {}
+        reset();
+        navigate(isAdmin ? "/admin" : "/chat");
+      } catch {
+        // fallback to chat if /me fails
+        reset();
+        navigate("/chat");
+      }
     } catch (err) {
       console.error(err);
       setError(
