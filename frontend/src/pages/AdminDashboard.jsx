@@ -42,13 +42,31 @@ export default function AdminDashboard() {
         {error && (<div className="text-red-600">{error}</div>)}
         <div className="divide-y">
           {Array.isArray(ngos) && ngos.map(n => (
-            <div key={n._id} className="py-3 flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900">{n.ngoName}</div>
-                <div className="text-sm text-gray-600">{n.email}</div>
-                <div className="text-xs text-gray-500">Reg#: {n.registrationNumber}</div>
+            <div key={n._id} className="py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="font-semibold text-gray-900 text-base mb-1">{n.ngoName}</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                    <div className="text-gray-600"><span className="font-medium text-gray-800">Email:</span> {n.email}</div>
+                    <div className="text-gray-600"><span className="font-medium text-gray-800">Contact:</span> {n.contact}</div>
+                    <div className="text-gray-600"><span className="font-medium text-gray-800">Registration #:</span> {n.registrationNumber}</div>
+                    <div className="text-gray-600"><span className="font-medium text-gray-800">DARPAN UID:</span> {n.darpanUid}</div>
+                    <div className="text-gray-600"><span className="font-medium text-gray-800">State:</span> {n.registeredState}</div>
+                    <div className="text-gray-600"><span className="font-medium text-gray-800">District:</span> {n.registeredDistrict}</div>
+                    <div className="text-gray-600"><span className="font-medium text-gray-800">Type:</span> {n.ngoType}</div>
+                    <div className="text-gray-600"><span className="font-medium text-gray-800">Sector:</span> {n.sector}</div>
+                    {n.officialwebsiteURL && (
+                      <div className="text-gray-600 truncate"><span className="font-medium text-gray-800">Website:</span> <a href={n.officialwebsiteURL} target="_blank" rel="noreferrer" className="text-emerald-700 underline break-all">{n.officialwebsiteURL}</a></div>
+                    )}
+                    {n.registrationCertificate && (
+                      <div className="text-gray-600 truncate"><span className="font-medium text-gray-800">Certificate:</span> <a href={n.registrationCertificate} target="_blank" rel="noreferrer" className="text-emerald-700 underline break-all">View</a></div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
+                  <button onClick={() => verifyNgo(n._id)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700">Verify</button>
+                </div>
               </div>
-              <button onClick={() => verifyNgo(n._id)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700">Verify</button>
             </div>
           ))}
           {!loading && Array.isArray(ngos) && ngos.length === 0 && (

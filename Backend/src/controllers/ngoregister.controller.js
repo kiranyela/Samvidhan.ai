@@ -73,7 +73,7 @@ const registerNgo = asyncHandler(async (req, res) => {
     }
 
     return res.status(201).json(
-        new ApiResponse(201, createdNgo, "NGO registered successfully")
+        new ApiResponse(201, "NGO registered successfully", createdNgo)
     );
 });
 
@@ -187,9 +187,9 @@ const requestOtp = asyncHandler(async (req, res) => {
    throw new ApiError(500, "Failed to send OTP email. Please try again later.");
  }
 
- return res.status(200).json(
-  new ApiResponse(200, { previewUrl }, "OTP sent successfully")
- );
+  return res.status(200).json(
+    new ApiResponse(200, "OTP sent successfully", { previewUrl })
+  );
 });
 
 
@@ -209,30 +209,37 @@ const verifyOtp = asyncHandler(async (req, res) => {
  const isOtpValid = await bcrypt.compare(otp, ngo.otp);
  if (!isOtpValid) throw new ApiError(401, "Invalid OTP");
 
- // Clear OTP after successful login
- ngo.otp = undefined;
- ngo.otpExpiry = undefined;
+  // If OTP is valid but NGO is not verified yet, do not issue tokens
+  if (!ngo.isVerified) {
+    ngo.otp = undefined;
+    ngo.otpExpiry = undefined;
+    await ngo.save({ validateBeforeSave: false });
+    return res
+      .status(403)
+      .json(new ApiResponse(403, "Your NGO account is pending admin verification. You can log in after approval.", { pending: true }));
+  }
 
- // Assuming generateAccessToken and generateRefreshToken methods exist on the Ngo model
- const accessToken = ngo.generateAccessToken();
- const refreshToken = ngo.generateRefreshToken();
+  // Clear OTP and proceed to login for verified NGOs
+  ngo.otp = undefined;
+  ngo.otpExpiry = undefined;
 
- ngo.refreshToken = refreshToken;
- await ngo.save({ validateBeforeSave: false });
+  const accessToken = ngo.generateAccessToken();
+  const refreshToken = ngo.generateRefreshToken();
 
- const options = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'Strict' // Best practice for CSRF protection
- };
+  ngo.refreshToken = refreshToken;
+  await ngo.save({ validateBeforeSave: false });
 
- return res
-  .status(200)
-  .cookie("accessToken", accessToken, options)
-  .cookie("refreshToken", refreshToken, options)
-  .json(
-   new ApiResponse(200, { ngo, accessToken, refreshToken }, "Logged in successfully")
-  );
+  const options = {
+   httpOnly: true,
+   secure: process.env.NODE_ENV === 'production',
+   sameSite: 'Strict'
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(new ApiResponse(200, "Logged in successfully", { ngo, accessToken, refreshToken }));
 });
 
 export {

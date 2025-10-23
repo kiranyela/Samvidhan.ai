@@ -208,7 +208,8 @@ export default function NGODashboard() {
 
   const fetchPosts = async () => {
     try {
-      const res = await api.get("/v1/posts", { params: { onlyVerifiedUsers: true } });
+      // Use protected NGO feed that requires NGO login and verification
+      const res = await api.get("/v1/posts/ngo-feed");
       const posts = res?.data?.data || [];
       const mapped = posts.map((p) => {
         const userName = p.contactEmail
@@ -302,7 +303,11 @@ export default function NGODashboard() {
       fetchPosts();
     } catch (e) {
       console.error(e);
-      // revert on error by refetching
+      if (e?.response?.status === 403) {
+        alert("Your NGO account is not verified yet. Please contact the admin to get access.");
+        return;
+      }
+      
       try {
         await fetchPosts();
       } catch {}
