@@ -12,95 +12,12 @@ import {
 } from "lucide-react";
 import api from "../lib/api";
 
-// Moved static data outside the component
-const initialCases = [
-  {
-    id: 1,
-    title: "Workplace Discrimination Case",
-    description:
-      "I have been facing discrimination at my workplace based on my gender. My employer has repeatedly denied me promotions despite having better qualifications than my male colleagues. This has been happening for over 2 years now.",
-    category: "Employment Rights",
-    severity: "High",
-    location: "Mumbai, Maharashtra",
-    submittedDate: "2025-10-18",
-    userName: "Priya S.",
-    avatar: "PS",
-    status: "pending",
-    pilEligible: true,
-    comments: 12,
-    likes: 45,
-  },
-  {
-    id: 2,
-    title: "Land Acquisition Dispute",
-    description:
-      "The government has forcibly acquired our agricultural land without proper compensation. Multiple families in our village are affected. We have been farming this land for generations.",
-    category: "Property Rights",
-    severity: "Critical",
-    location: "Rural Karnataka",
-    submittedDate: "2025-10-17",
-    userName: "Rajesh K.",
-    avatar: "RK",
-    status: "pending",
-    pilEligible: true,
-    comments: 28,
-    likes: 89,
-  },
-  {
-    id: 3,
-    title: "Educational Institution Denial",
-    description:
-      "My child was denied admission to a public school despite having all the necessary documents and meeting eligibility criteria. The school officials are not providing any proper reason.",
-    category: "Education Rights",
-    severity: "Medium",
-    location: "Delhi",
-    submittedDate: "2025-10-19",
-    userName: "Amit P.",
-    avatar: "AP",
-    status: "pending",
-    pilEligible: false,
-    comments: 8,
-    likes: 23,
-  },
-  {
-    id: 4,
-    title: "Environmental Pollution by Factory",
-    description:
-      "A nearby factory is releasing toxic waste into our water supply, affecting the health of residents in three villages. Children are falling sick regularly and we have no clean water source.",
-    category: "Environmental Rights",
-    severity: "Critical",
-    location: "Kollam, Kerala",
-    submittedDate: "2025-10-16",
-    userName: "Anonymous User",
-    avatar: "AU",
-    status: "accepted",
-    pilEligible: true,
-    comments: 56,
-    likes: 203,
-  },
-  {
-    id: 5,
-    title: "Police Harassment Complaint",
-    description:
-      "Local police have been harassing street vendors without proper legal procedures or documentation. Daily they threaten us and take our earnings as bribes.",
-    category: "Civil Rights",
-    severity: "High",
-    location: "Bangalore, Karnataka",
-    submittedDate: "2025-10-15",
-    userName: "Ramesh M.",
-    avatar: "RM",
-    status: "rejected",
-    pilEligible: false,
-    comments: 15,
-    likes: 34,
-  },
-];
 
  
 
 export default function NGODashboard() {
   const [selectedTab, setSelectedTab] = useState("pending");
-  const [cases, setCases] = useState(initialCases);
+  const [cases, setCases] = useState([]);
   const ngoEmail = (typeof window !== 'undefined' && localStorage.getItem("email")) || "";
   const ngoName = ngoEmail ? ngoEmail.split("@")[0] : "";
   const [previewSrc, setPreviewSrc] = useState(null);
@@ -243,6 +160,10 @@ export default function NGODashboard() {
       setCases(mapped);
     } catch (e) {
       console.error(e);
+      if (e?.response?.status === 403) {
+        alert("Your NGO account is not verified yet. Please contact the admin to get access.");
+        return;
+      }
     }
   };
 
@@ -294,23 +215,21 @@ export default function NGODashboard() {
   };
 
   const updateCaseStatus = async (caseId, status) => {
+    // optimistic update first
+    setCases((prev) => prev.map((c) => (c.id === caseId ? { ...c, status } : c)));
     try {
-      // optimistic update
-      setCases((prev) => prev.map((c) => (c.id === caseId ? { ...c, status } : c)));
       await api.patch(`/v1/posts/${caseId}/status`, { status, ngoName, ngoEmail });
-      // notify same-tab listeners and refresh
       try { window.dispatchEvent(new Event("posts-changed")); } catch {}
-      fetchPosts();
+      // best-effort refresh; don't surface alert on refresh failures
+      try { await fetchPosts(); } catch (refreshErr) { console.warn(refreshErr); }
     } catch (e) {
       console.error(e);
       if (e?.response?.status === 403) {
         alert("Your NGO account is not verified yet. Please contact the admin to get access.");
         return;
       }
-      
-      try {
-        await fetchPosts();
-      } catch {}
+      // revert by refetching and show failure only if PATCH failed
+      try { await fetchPosts(); } catch {}
       alert("Failed to update status");
     }
   };

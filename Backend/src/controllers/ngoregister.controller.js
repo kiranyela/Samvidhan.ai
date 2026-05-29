@@ -141,7 +141,8 @@ const requestOtp = asyncHandler(async (req, res) => {
  // Hash OTP before saving to DB
  const hashedOtp = await bcrypt.hash(otp, 10);
  ngo.otp = hashedOtp;
- ngo.otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // valid for 5 mins
+ const otpMinutes = Number(process.env.NGO_OTP_EXP_MINUTES) || 10;
+ ngo.otpExpiry = new Date(Date.now() + otpMinutes * 60 * 1000); // valid for configured minutes
  await ngo.save({ validateBeforeSave: false });
 
  // Send OTP via email. If EMAIL_* not configured, use Ethereal fallback for development and return preview URL.
@@ -173,8 +174,8 @@ const requestOtp = asyncHandler(async (req, res) => {
      from: process.env.EMAIL_USER || 'no-reply@example.com',
      to: email,
      subject: "Your OTP for NGO Login",
-     text: `Your OTP for NGO login is ${otp}. It is valid for 5 minutes.`,
-     html: `<p>Your OTP for NGO login is <strong>${otp}</strong>.</p><p>It is valid for 5 minutes.</p>`,
+     text: `Your OTP for NGO login is ${otp}. It is valid for ${otpMinutes} minutes.`,
+     html: `<p>Your OTP for NGO login is <strong>${otp}</strong>.</p><p>It is valid for ${otpMinutes} minutes.</p>`,
    });
    // Generate Ethereal preview URL if applicable
    previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
@@ -232,7 +233,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
   const options = {
    httpOnly: true,
    secure: process.env.NODE_ENV === 'production',
-   sameSite: 'Strict'
+   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   };
 
   return res

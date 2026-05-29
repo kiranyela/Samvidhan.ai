@@ -138,9 +138,11 @@ export default function NGOLogin() {
                 OTP
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="\\d{4,8}"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ""))}
                 placeholder="Enter the OTP sent to you"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-400 transition-all"
               />
@@ -177,9 +179,9 @@ export default function NGOLogin() {
                 </motion.button>
 
                 <motion.button
-                  onClick={() => {
-                    setOtpSent(false);
+                  onClick={async () => {
                     setOtp("");
+                    await handleRequestOTP();
                   }}
                   className="w-full rounded-xl bg-white border border-emerald-600 text-emerald-700 px-6 py-3 text-sm font-medium shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition-all"
                   initial={{ opacity: 0, y: 10 }}

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createPost, listPosts, getPost, updateStatus, updatePost, deletePost, addAttachments, removeAttachment } from "../controllers/post.controller.js";
+import { createPost, listPosts, getPost, updateStatus, updatePost, deletePost, addAttachments, removeAttachment, getNGOFeed } from "../controllers/postCrud.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyNGOJWT, blockUnverifiedNGOIfPresent } from "../middlewares/ngoAuth.middleware.js";
 
@@ -7,24 +7,13 @@ const router = Router();
 
 // Public list and view
 router.get("/", blockUnverifiedNGOIfPresent, listPosts);
-router.get("/:id", blockUnverifiedNGOIfPresent, getPost);
 
-// NGO feed (requires NGO login and verification)
-router.get("/ngo-feed", verifyNGOJWT, async (req, res, next) => {
-  try {
-    if (!req.ngo?.isVerified) {
-      return res.status(403).json({ success: false, message: "NGO not verified" });
-    }
-    // inject ngoId into query so listPosts can filter appropriately
-    req.query = {
-      ...req.query,
-      ngoId: String(req.ngo._id || ""),
-    };
-    return listPosts(req, res, next);
-  } catch (e) {
-    next(e);
-  }
-});
+
+
+router.get("/ngo-feed" , verifyNGOJWT , getNGOFeed);
+
+// Parameterized view must come after specific routes like '/ngo-feed'
+router.get("/:id", blockUnverifiedNGOIfPresent, getPost);
 
 // Create post with up to 5 attachments under field name 'attachments'
 router.post("/", upload.array("attachments", 5), createPost);

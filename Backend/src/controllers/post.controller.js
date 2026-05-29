@@ -1,293 +1,250 @@
-import { Post } from "../models/post.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import { Notification } from "../models/notification.model.js";
-import { deleteFromCloudinary } from "../utils/cloudinary.js";
-import { User } from "../models/user.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { Ngo } from "../models/ngo.model.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import crypto from "crypto";
+import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
+import {uploadOnCloudinary} from "../utils/cloudinary.js";
 
-export const createPost = async (req, res, next) => {
-  try {
-    const { description, category, contactEmail, location, urgency } = req.body;
-    if (!description || !description.trim()) {
-      return res.status(400).json({ success: false, message: "Description is required" });
+
+
+
+//register
+const registerNgo = asyncHandler(async (req, res) => {
+    const {
+        ngoName,
+        darpanUid,
+        registeredState,
+        registeredDistrict,
+        ngoType,
+        sector,
+        registrationNumber,
+        email,
+        contact,
+        
+        officialwebsiteURL,
+        // registrationCertificate
+    } = req.body;
+
+    const registrationCertificateLocalPath = req.file?.path;
+
+    if (
+        [ngoName, darpanUid, registeredState, registeredDistrict, ngoType, sector, registrationNumber, email, contact, registrationCertificateLocalPath].some((field) => typeof field === 'string' && field.trim() === "")
+    ) {
+        throw new ApiError(400, "All fields are required");
     }
 
-    // Determine author from auth middlewares (optional)
-    let authorType = "guest";
-    let authorId = null;
-    let authorTypeRef = "User";
-
-    if (req.user) {
-      authorType = "user";
-      authorId = req.user._id;
-      authorTypeRef = "User";
-    }
-    if (req.ngo) {
-      authorType = "ngo";
-      authorId = req.ngo._id;
-      authorTypeRef = "Ngo";
-    }
-
-    // very simple heuristics for auto-categorization and urgency
-    const inferCategory = (text) => {
-      const t = text.toLowerCase();
-      if (/harass|assault|violence|threat/.test(t)) return "Criminal Law";
-      if (/salary|wage|unpaid|termination|workplace|employ/.test(t)) return "Employment Rights";
-      if (/property|land|tenancy|rent|evict/.test(t)) return "Property & Tenancy";
-      if (/marriage|divorce|custody|domestic/.test(t)) return "Family Law";
-      if (/cyber|online|fraud|phishing/.test(t)) return "Cyber Crime";
-      return "General";
-    };
-
-    const inferUrgency = (text) => {
-      const t = text.toLowerCase();
-      if (/life\s*threat|immediate|urgent|right\s*now|danger|violence/.test(t)) return "high";
-      if (/soon|asap|quick|priority/.test(t)) return "medium";
-      return "medium";
-    };
-
-    const files = req.files || [];
-    const attachments = [];
-    for (const f of files) {
-      const uploaded = await uploadOnCloudinary(f.path);
-      if (uploaded) {
-        attachments.push({
-          url: uploaded.secure_url,
-          publicId: uploaded.public_id,
-          originalName: f.originalname,
-          mimeType: f.mimetype,
-          size: f.size,
-        });
-      }
-    }
-
-    const post = await Post.create({
-      authorType,
-      authorId,
-      authorTypeRef,
-      category: category || inferCategory(description),
-      urgency: urgency || inferUrgency(description),
-      contactEmail: contactEmail || (req.user?.email || req.ngo?.email) || null,
-      location: location || null,
-      description: description.trim(),
-      attachments,
+    const existedNgo = await Ngo.findOne({
+        $or: [{ email }, { registrationNumber },{ darpanUid }]
     });
 
-    return res.status(201).json({ success: true, data: post });
-  } catch (err) {
-    next(err);
+    if (existedNgo) {
+        throw new ApiError(409, "NGO with this email or registration number already exists");
+    }
+
+    const certificateUploadResponse = await uploadOnCloudinary(registrationCertificateLocalPath);
+
+    if (!certificateUploadResponse) {
+        // The utility already cleans up the local file if upload fails
+        throw new ApiError(500, "Failed to upload registration certificate");
+    }
+    const registrationCertificate = certificateUploadResponse.secure_url;
+
+    const ngo = await Ngo.create({
+        ngoName,
+        darpanUid,
+        registeredState,
+        registeredDistrict,
+        ngoType,
+        sector,
+        registrationNumber,
+        email,
+        contact,
+       
+        officialwebsiteURL,
+        registrationCertificate
+    });
+
+    const createdNgo = await Ngo.findById(ngo._id).select("-otp -otpExpiry -refreshToken");
+
+    if (!createdNgo) {
+        throw new ApiError(500, "Something went wrong while registering the NGO");
+    }
+
+    return res.status(201).json(
+        new ApiResponse(201, "NGO registered successfully", createdNgo)
+    );
+});
+
+//login
+// const loginNgo = asyncHandler(async (req, res) => {
+//     const { email, password } = req.body;
+
+//     if (!email || !password) {
+//         throw new ApiError(400, "Email and password are required");
+//     }
+
+//     const ngo = await Ngo.findOne({ email });
+
+//     if (!ngo) {
+//         throw new ApiError(404, "NGO not found");
+//     }
+
+//     const isPasswordValid = await ngo.isPasswordCorrect(password);
+
+//     if (!isPasswordValid) {
+//         throw new ApiError(401, "Invalid credentials");
+//     }
+
+//     const accessToken = ngo.generateAccessToken();
+//     const refreshToken = ngo.generateRefreshToken();
+
+//     ngo.refreshToken = refreshToken;
+//     await ngo.save({ validateBeforeSave: false });
+
+//     const loggedInNgo = await Ngo.findById(ngo._id).select("-password -refreshToken");
+
+//     const options = {
+//         httpOnly: true,
+//         secure: process.env.NODE_ENV === 'production'
+//     };
+
+//     return res
+//         .status(200)
+//         .cookie("accessToken", accessToken, options)
+//         .cookie("refreshToken", refreshToken, options)
+//         .json(
+//             new ApiResponse(
+//                 200,
+//                 {
+//                     ngo: loggedInNgo,
+//                     accessToken,
+//                     refreshToken
+//                 },
+//                 "NGO logged in successfully"
+//             )
+//         );
+// });
+
+// Request OTP
+const requestOtp = asyncHandler(async (req, res) => {
+ const { email } = req.body;
+ if (!email || email.trim() === "") throw new ApiError(400, "Email is required"); // Corrected validation
+
+ const ngo = await Ngo.findOne({ email });
+ if (!ngo) throw new ApiError(404, "NGO not found with this email");
+
+ // Generate 6-digit OTP
+ const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+ // Hash OTP before saving to DB
+ const hashedOtp = await bcrypt.hash(otp, 10);
+ ngo.otp = hashedOtp;
+ const otpMinutes = Number(process.env.NGO_OTP_EXP_MINUTES) || 10;
+ ngo.otpExpiry = new Date(Date.now() + otpMinutes * 60 * 1000); // valid for configured minutes
+ await ngo.save({ validateBeforeSave: false });
+
+ // Send OTP via email. If EMAIL_* not configured, use Ethereal fallback for development and return preview URL.
+ let previewUrl = undefined;
+ try {
+   let transporter;
+   if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+     transporter = nodemailer.createTransport({
+       service: process.env.EMAIL_SERVICE || "gmail",
+       auth: {
+         user: process.env.EMAIL_USER,
+         pass: process.env.EMAIL_PASS,
+       },
+     });
+   } else {
+     const testAccount = await nodemailer.createTestAccount();
+     transporter = nodemailer.createTransport({
+       host: "smtp.ethereal.email",
+       port: 587,
+       secure: false,
+       auth: {
+         user: testAccount.user,
+         pass: testAccount.pass,
+       },
+     });
+   }
+
+   const info = await transporter.sendMail({
+     from: process.env.EMAIL_USER || 'no-reply@example.com',
+     to: email,
+     subject: "Your OTP for NGO Login",
+     text: `Your OTP for NGO login is ${otp}. It is valid for ${otpMinutes} minutes.`,
+     html: `<p>Your OTP for NGO login is <strong>${otp}</strong>.</p><p>It is valid for ${otpMinutes} minutes.</p>`,
+   });
+   // Generate Ethereal preview URL if applicable
+   previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
+ } catch (error) {
+   console.error("Nodemailer failed to send email:", error);
+   // rollback stored OTP to avoid misleading success
+   ngo.otp = undefined;
+   ngo.otpExpiry = undefined;
+   await ngo.save({ validateBeforeSave: false });
+   throw new ApiError(500, "Failed to send OTP email. Please try again later.");
+ }
+
+  return res.status(200).json(
+    new ApiResponse(200, "OTP sent successfully", { previewUrl })
+  );
+});
+
+
+// Verify OTP & Login
+const verifyOtp = asyncHandler(async (req, res) => {
+ const { email, otp } = req.body;
+ if (!email || !otp) throw new ApiError(400, "Email and OTP are required");
+
+ const ngo = await Ngo.findOne({ email });
+ if (!ngo) throw new ApiError(404, "NGO not found");
+
+ if (!ngo.otp || !ngo.otpExpiry || ngo.otpExpiry < Date.now())
+  throw new ApiError(400, "OTP expired. Please request a new one.");
+
+ // Note: The original code does not include `isPasswordCorrect` method on the Ngo model. 
+ // Assuming `bcrypt.compare` is the correct method for comparing the OTP.
+ const isOtpValid = await bcrypt.compare(otp, ngo.otp);
+ if (!isOtpValid) throw new ApiError(401, "Invalid OTP");
+
+  // If OTP is valid but NGO is not verified yet, do not issue tokens
+  if (!ngo.isVerified) {
+    ngo.otp = undefined;
+    ngo.otpExpiry = undefined;
+    await ngo.save({ validateBeforeSave: false });
+    return res
+      .status(403)
+      .json(new ApiResponse(403, "Your NGO account is pending admin verification. You can log in after approval.", { pending: true }));
   }
-};
 
-export const listPosts = async (req, res, next) => {
-  try {
-    const { limit = 20, page = 1, ngoId, onlyVerifiedUsers } = req.query;
-    const l = Math.min(parseInt(limit, 10) || 20, 100);
-    const p = Math.max(parseInt(page, 10) || 1, 1);
+  // Clear OTP and proceed to login for verified NGOs
+  ngo.otp = undefined;
+  ngo.otpExpiry = undefined;
 
-    // Base filter
-    const filter = {};
+  const accessToken = ngo.generateAccessToken();
+  const refreshToken = ngo.generateRefreshToken();
 
-    // If an NGO is requesting its feed, hide posts accepted by other NGOs,
-    // and hide posts that this NGO has already rejected.
-    if (ngoId) {
-      filter.$and = [
-        {
-          $or: [
-            { 'acceptedBy.ngoId': null },
-            { 'acceptedBy.ngoId': { $exists: false } },
-            { 'acceptedBy.ngoId': ngoId },
-          ],
-        },
-        { 'rejectedBy.ngoId': { $ne: ngoId } },
-      ];
-    }
+  ngo.refreshToken = refreshToken;
+  await ngo.save({ validateBeforeSave: false });
 
-    // If onlyVerifiedUsers flag is true, restrict to posts authored by verified users (or non-user authors)
-    if (String(onlyVerifiedUsers).toLowerCase() === 'true') {
-      try {
-        const verifiedIds = await User.find({ isVerified: true }).select('_id').lean();
-        const idList = verifiedIds.map(u => u._id);
-        const verifiedCondition = {
-          $or: [
-            { authorType: { $ne: 'user' } }, // allow NGOs/guests if any
-            { $and: [ { authorType: 'user' }, { authorId: { $in: idList } } ] }
-          ]
-        };
-        if (filter.$and) {
-          filter.$and.push(verifiedCondition);
-        } else {
-          filter.$and = [ verifiedCondition ];
-        }
-      } catch (e) {
-        // fallback: if user lookup fails, default to no additional filter
-      }
-    }
+  const options = {
+   httpOnly: true,
+   secure: process.env.NODE_ENV === 'production',
+   sameSite: 'Strict'
+  };
 
-    const posts = await Post.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((p - 1) * l)
-      .limit(l)
-      .lean();
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(new ApiResponse(200, "Logged in successfully", { ngo, accessToken, refreshToken }));
+});
 
-    return res.json({ success: true, data: posts, pagination: { page: p, limit: l } });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const getPost = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const post = await Post.findById(id);
-    if (!post) return res.status(404).json({ success: false, message: "Not found" });
-    return res.json({ success: true, data: post });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const updatePost = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { description, category, location } = req.body;
-    const update = {};
-    if (typeof description === "string" && description.trim()) update.description = description.trim();
-    if (typeof category === "string") update.category = category;
-    if (typeof location === "string") update.location = location;
-
-    const post = await Post.findByIdAndUpdate(id, { $set: update }, { new: true });
-    if (!post) return res.status(404).json({ success: false, message: "Not found" });
-    return res.json({ success: true, data: post });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const deletePost = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const post = await Post.findByIdAndDelete(id);
-    if (!post) return res.status(404).json({ success: false, message: "Not found" });
-    return res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const addAttachments = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const post = await Post.findById(id);
-    if (!post) return res.status(404).json({ success: false, message: "Not found" });
-
-    const files = req.files || [];
-    const newAttachments = [];
-    for (const f of files) {
-      const uploaded = await uploadOnCloudinary(f.path);
-      if (uploaded) {
-        newAttachments.push({
-          url: uploaded.secure_url,
-          publicId: uploaded.public_id,
-          originalName: f.originalname,
-          mimeType: f.mimetype,
-          size: f.size,
-        });
-      }
-    }
-
-    post.attachments.push(...newAttachments);
-    await post.save();
-    return res.json({ success: true, data: post });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const removeAttachment = async (req, res, next) => {
-  try {
-    const { id, publicId } = req.params;
-    const post = await Post.findById(id);
-    if (!post) return res.status(404).json({ success: false, message: "Not found" });
-    const before = post.attachments.length;
-    post.attachments = post.attachments.filter((a) => a.publicId !== publicId);
-    const removed = before !== post.attachments.length;
-    if (removed) {
-      await deleteFromCloudinary(publicId);
-      await post.save();
-    }
-    return res.json({ success: true, data: post, removed });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const updateStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status, ngoName, ngoEmail, ngoId } = req.body;
-    if (!['pending', 'accepted', 'rejected'].includes(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid status' });
-    }
-    const post = await Post.findById(id);
-    if (!post) return res.status(404).json({ success: false, message: 'Not found' });
-
-    // Handle accept: mark acceptedBy and set global status to accepted
-    if (status === 'accepted') {
-      post.status = 'accepted';
-      post.acceptedBy = { ngoId: ngoId || null, ngoName: ngoName || null, ngoEmail: ngoEmail || null };
-      // If previously rejectedBy contains this NGO, remove it (no longer relevant)
-      if (ngoId) {
-        post.rejectedBy = (post.rejectedBy || []).filter(r => String(r.ngoId) !== String(ngoId));
-      }
-    }
-
-    // Handle reject: do NOT globally set status to rejected. Instead mark this NGO in rejectedBy
-    if (status === 'rejected') {
-      if (ngoId) {
-        const exists = (post.rejectedBy || []).some(r => String(r.ngoId) === String(ngoId));
-        if (!exists) {
-          post.rejectedBy = post.rejectedBy || [];
-          post.rejectedBy.push({ ngoId, ngoName: ngoName || null, ngoEmail: ngoEmail || null });
-        }
-      }
-      // If this NGO was the accepting NGO, unaccept and move back to pending
-      if (post.acceptedBy?.ngoId && ngoId && String(post.acceptedBy.ngoId) === String(ngoId)) {
-        post.acceptedBy = { ngoId: null, ngoName: null, ngoEmail: null };
-        post.status = 'pending';
-      }
-      // Otherwise, keep current global status (pending or accepted by someone else)
-    }
-
-    // Handle pending: clear acceptedBy. Do not modify rejectedBy
-    if (status === 'pending') {
-      post.acceptedBy = { ngoId: null, ngoName: null, ngoEmail: null };
-      post.status = 'pending';
-    }
-
-    await post.save();
-    if (!post) return res.status(404).json({ success: false, message: 'Not found' });
-    // Create a notification to the user who posted (if contactEmail is present)
-    if (post.contactEmail) {
-      const msg = status === 'accepted'
-        ? `${ngoName || 'An NGO'} has accepted your post.`
-        : status === 'rejected'
-        ? `${ngoName || 'An NGO'} has rejected your post.`
-        : `Your post status is now pending.`;
-      try {
-        await Notification.create({
-          userEmail: (post.contactEmail || '').toLowerCase(),
-          postId: post._id,
-          status,
-          ngoName: ngoName || null,
-          ngoEmail: ngoEmail || null,
-          message: msg,
-        });
-      } catch (e) {
-        // non-fatal
-      }
-    }
-    return res.json({ success: true, data: post });
-  } catch (err) {
-    next(err);
-  }
+export {
+    registerNgo,
+    requestOtp,
+    verifyOtp,
 };
